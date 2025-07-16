@@ -1,0 +1,16 @@
+[gd_scene load_steps=4 format=3 uid="uid://bdfjfwcig0vw"]
+
+[ext_resource type="Script" uid="uid://57jms8o4y7er" path="res://game_paper.gd" id="1_1kfx5"]
+[ext_resource type="Script" uid="uid://np4nclawcn4q" path="res://player.gd" id="1_a0vu3"]
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_1kfx5"]
+size = Vector2(32, 32)
+
+[node name="GamePaper" type="Node2D"]
+script = ExtResource("1_1kfx5")
+
+[node name="Player" type="CharacterBody2D" parent="."]
+script = ExtResource("1_a0vu3")
+
+[node name="Sprite2D" type="Sprite2D" parent="Player"]
+texture = SubResource("PlaceholderTexture2D_1kfx5")
