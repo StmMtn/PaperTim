@@ -12,11 +12,11 @@ const serverOptions = {
   cert: fs.readFileSync('localhost.pem')
 };
 
+// Game HTML benutzen
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/Game/game.html'));
 });
 
-// Game HTML benutzen
 app.use('/', express.static(path.join(__dirname, '../client/Game')));
 
 // HTTPS Server erstellen
@@ -34,7 +34,7 @@ wss.on('connection', ws => {
   }
 
   clients.add(ws);
-  console.log("Client connected:", clients.size);
+  console.log(`Client connected. Active clients: ${clients.size}`);
 
   ws.on('message', message => {
     // Broadcast an alle außer Sender
@@ -47,7 +47,7 @@ wss.on('connection', ws => {
 
   ws.on('close', () => {
     clients.delete(ws);
-    console.log("Client disconnected:", clients.size);
+    console.log(`Client disconnected. Active clients: ${clients.size}`);
   });
 });
 

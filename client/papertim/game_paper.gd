@@ -3,7 +3,7 @@ extends Node2D
 var ws := WebSocketPeer.new()
 
 func _ready():
-	ws.connect_to_url("ws://localhost:8080")
+	ws.connect_to_url("wss://localhost:8443")
 	print("Connecting...")
 
 func _process(delta):

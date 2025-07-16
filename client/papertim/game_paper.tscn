@@ -13,4 +13,5 @@ script = ExtResource("1_1kfx5")
 script = ExtResource("1_a0vu3")
 
 [node name="Sprite2D" type="Sprite2D" parent="Player"]
+position = Vector2(16, 16)
 texture = SubResource("PlaceholderTexture2D_1kfx5")
