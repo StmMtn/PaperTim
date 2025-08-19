@@ -1,0 +1,40 @@
+[gd_scene load_steps=3 format=3 uid="uid://6c57ngnb4vgm"]
+
+[sub_resource type="GDScript" id="GDScript_186t8"]
+script/source = "extends CharacterBody2D
+
+var speed := 200
+var is_local_player := false   # <<< Flag für \"gehört zu mir?\"
+
+func _physics_process(delta):
+	if is_local_player:
+		var direction = Vector2.ZERO
+
+		if Input.is_action_pressed(\"ui_right\"):
+			direction.x += 1
+		if Input.is_action_pressed(\"ui_left\"):
+			direction.x -= 1
+		if Input.is_action_pressed(\"ui_down\"):
+			direction.y += 1
+		if Input.is_action_pressed(\"ui_up\"):
+			direction.y -= 1
+
+		velocity = direction.normalized() * speed
+		move_and_slide()
+
+		# eigene Position senden
+		if get_parent().has_method(\"send_position\"):
+			get_parent().send_position(global_position)
+"
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_ij6vw"]
+specular_color = Color(1, 0, 1, 1)
+
+[node name="CharacterBody2D" type="CharacterBody2D"]
+script = SubResource("GDScript_186t8")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(1, 0, 1, 1)
+self_modulate = Color(1, 0, 1, 1)
+scale = Vector2(10, 10)
+texture = SubResource("CanvasTexture_ij6vw")

@@ -25,7 +25,8 @@ const httpsServer = https.createServer(serverOptions, app);
 // WebSocket Server auf HTTPS-Server aufsetzen
 const wss = new WebSocket.Server({ server: httpsServer });
 
-const clients = new Set();
+let nextId = 1;
+const clients = new Map(); // ws -> {id}
 
 wss.on('connection', ws => {
   if (clients.size >= 10) {
@@ -33,21 +34,40 @@ wss.on('connection', ws => {
     return;
   }
 
-  clients.add(ws);
-  console.log(`Client connected. Active clients: ${clients.size}`);
+  const playerId = nextId++;
+  clients.set(ws, { id: playerId });
 
-  ws.on('message', message => {
-    // Broadcast an alle außer Sender
-    for (let client of clients) {
+  // Schick dem neuen Client seine ID
+  ws.send(JSON.stringify({ type: "init", id: playerId }));
+
+  console.log(`Player ${playerId} connected. Active players: ${clients.size}`);
+
+  ws.on('message', msg => {
+    const data = JSON.parse(msg);
+
+    // Broadcast an alle anderen
+    for (let [client, info] of clients) {
       if (client !== ws && client.readyState === WebSocket.OPEN) {
-        client.send(message);
+        client.send(JSON.stringify({
+          type: "update",
+          id: playerId,
+          x: data.x,
+          y: data.y
+        }));
       }
     }
   });
 
   ws.on('close', () => {
     clients.delete(ws);
-    console.log(`Client disconnected. Active clients: ${clients.size}`);
+    console.log(`Player ${playerId} disconnected. Active clients: ${clients.size}`);
+
+    // Informiere andere Clients, dass er weg ist
+    for (let [client] of clients) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({ type: "remove", id: playerId }));
+      }
+    }
   });
 });
 
@@ -56,3 +76,9 @@ const PORT = 8443;
 httpsServer.listen(PORT, () => {
   console.log(`HTTPS Server läuft auf https://localhost:${PORT}`);
 });
+
+const shutdown = async () => {
+  console.log('🛑 Shutting down API service...');
+  process.exit(0);
+};
+process.on('SIGTERM', shutdown);
