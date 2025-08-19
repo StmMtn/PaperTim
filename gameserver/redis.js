@@ -1,5 +1,9 @@
 const Redis = require('ioredis');
-const redis = new Redis(); // Standard localhost:6379
+const redis = new Redis({
+  host: 'redis',
+  port: 6379
+});
+
 
 const serverId = `server:${Date.now()}`;
 

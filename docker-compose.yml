@@ -1,32 +1,36 @@
 services:
   redis:
     image: redis:7
+    container_name: redis
     ports:
       - "6379:6379"
 
   masterserver:
     build: ./masterserver
+    container_name: masterserver
     ports:
       - "3000:3000"
     depends_on:
       - redis
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock  # damit Master Server Container starten kann
+      - /var/run/docker.sock:/var/run/docker.sock  # Master darf Docker steuern
 
-  frontend:
+  frontendlobby:
     build:
       context: ./Frontend
-    image: frontend:v1
-    container_name: frontendcontainer
+    image: frontendlobby:v1
+    container_name: frontendlobby
     ports:
-      - "8081:8081"   
+      - "8081:8081"
     depends_on:
       - masterserver
 
   gameserver:
     build: ./gameserver
+    image: gameserver:latest  
+    container_name: gameserver
     deploy:
-      replicas: 0   # keine automatisch starten
+      replicas: 0
     ports:
       - "8443:8443"
     depends_on:

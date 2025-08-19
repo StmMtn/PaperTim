@@ -40,3 +40,8 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+node_modules/
+localhost.pem
+localhost-key.pem
+package-lock.json

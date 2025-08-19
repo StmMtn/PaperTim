@@ -1,7 +1,8 @@
-    <button (click)="startServer()">Neuen Server starten</button>
-    <ul>
-      <li *ngFor="let server of servers">
-        Server {{server.id}} - Port: {{server.port}} - Spieler: {{server.players}}
-        <a [href]="'https://localhost:' + server.port" target="_blank">Beitreten</a>
-      </li>
-    </ul>
+<p>lobby works!</p>
+<button (click)="startServer()">Neuen Server starten</button>
+<ul>
+    <li *ngFor="let server of servers">
+    Server {{server.id}} - Port: {{server.port}} - Spieler: {{server.players}}
+    <a [href]="'https://localhost:' + server.port" target="_blank">Beitreten</a>
+    </li>
+</ul>

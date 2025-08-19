@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "dockerode": "^4.0.7",
     "express": "^5.1.0",
     "ioredis": "^5.7.0"
   },

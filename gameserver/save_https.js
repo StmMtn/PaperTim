@@ -1,3 +1,5 @@
+const fs = require('fs');
+const https = require('https');
 const express = require('express');
 const WebSocket = require('ws');
 const path = require('path');
@@ -11,6 +13,12 @@ const redis = new Redis({
   port: parseInt(process.env.REDIS_PORT) || 6379
 });
 
+// HTTPS Zertifikate laden
+const serverOptions = {
+  key: fs.readFileSync('localhost-key.pem'),
+  cert: fs.readFileSync('localhost.pem')
+};
+
 // Game HTML benutzen
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, './client/Game/game.html'));
@@ -18,24 +26,11 @@ app.get('/', (req, res) => {
 
 app.use('/', express.static(path.join(__dirname, './client/Game')));
 
-// HTTP Server erstellen
-const PORT = process.env.PORT || 8443;
-const server = app.listen(PORT, async () => {
-  console.log(`HTTP Server läuft auf http://localhost:${PORT}`);
+// HTTPS Server erstellen
+const httpsServer = https.createServer(serverOptions, app);
 
-  // Server in Redis registrieren
-  const serverKey = `server:${PORT}`;
-  await redis.hset(serverKey, {
-    host: 'gameserver', // oder der Container-Hostname falls Remote-Zugriff
-    port: PORT,
-    players: 0
-  });
-  await redis.expire(serverKey, 3600); // 1 Stunde
-  console.log(`Server registriert in Redis unter Key ${serverKey}`);
-});
-
-// WebSocket Server auf HTTP-Server aufsetzen
-const wss = new WebSocket.Server({ server });
+// WebSocket Server auf HTTPS-Server aufsetzen
+const wss = new WebSocket.Server({ server: httpsServer });
 
 let nextId = 1;
 const clients = new Map(); // ws -> {id}
@@ -77,9 +72,26 @@ wss.on('connection', ws => {
   });
 });
 
+// Server starten
+const PORT = process.env.PORT || 8443;
+httpsServer.listen(PORT, async () => {
+  console.log(`HTTPS Server läuft auf https://localhost:${PORT}`);
+
+  // Server in Redis registrieren
+  const serverKey = `server:${PORT}`;
+  await redis.hset(serverKey, {
+    host: 'gameserver', // oder der Container-Hostname falls Remote-Zugriff
+    port: PORT,
+    players: 0
+  });
+  // Optional: Ablaufzeit setzen, falls Container abstürzt
+  await redis.expire(serverKey, 3600); // 1 Stunde
+
+  console.log(`Server registriert in Redis unter Key ${serverKey}`);
+});
+
 // Clean shutdown
 const shutdown = async () => {
-  const serverKey = `server:${PORT}`;
   await redis.del(serverKey);
   console.log('🛑 Shutting down API service...');
   await redis.quit();
