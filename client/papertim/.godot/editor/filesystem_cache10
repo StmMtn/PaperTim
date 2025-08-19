@@ -1,8 +1,0 @@
-ea4bc82a6ad023ab7ee23ee620429895
-::res://::1755593387
-export_presets.cfg::TextFile/TextFile::-1::1752688568::0::1::::<><><>0<>0<><>::
-game_paper.gd::GDScript::2172294276807319721::1755592719::0::1::::<>Node2D<><>0<>0<><>::
-game_paper.tscn::PackedScene::76701930713462964::1755592719::0::1::::<><><>0<>0<><>::uid://57jms8o4y7er::::res://game_paper.gd<>uid://np4nclawcn4q::::res://player.gd<>uid://dmuikfdrrmech::::res://sprite_2d.tscn
-icon.svg::CompressedTexture2D/CompressedTexture2D::4666469830843427157::1752685764::1752685775::1::::<><><>0<>0<>1f017eadca89f697c1bbb11d2ef19695<>res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex::
-player.gd::GDScript::945204763785351630::1755592719::0::1::::<>CharacterBody2D<><>0<>0<><>::
-sprite_2d.tscn::PackedScene::8043319591744828203::1755593171::0::1::::<><><>0<>0<><>::

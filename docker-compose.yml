@@ -1,9 +1,33 @@
-version: "3.9"
-
 services:
-  game-server:
-    build: .
-    container_name: game-server
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  masterserver:
+    build: ./masterserver
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # damit Master Server Container starten kann
+
+  frontend:
+    build:
+      context: ./Frontend
+    image: frontend:v1
+    container_name: frontendcontainer
+    ports:
+      - "8081:8081"   
+    depends_on:
+      - masterserver
+
+  gameserver:
+    build: ./gameserver
+    deploy:
+      replicas: 0   # keine automatisch starten
     ports:
       - "8443:8443"
-    restart: unless-stopped
+    depends_on:
+      - redis
