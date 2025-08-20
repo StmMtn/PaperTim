@@ -6,7 +6,7 @@ var players := {}   # andere Spieler
 var my_player = null
 
 func _ready():
-	ws.connect_to_url("wss://localhost:8443")
+	ws.connect_to_url("ws://localhost:8443")
 	print("Connecting...")
 
 	# Eigenen Player instanzieren

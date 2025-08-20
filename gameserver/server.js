@@ -35,12 +35,11 @@ const server = app.listen(PORT, async () => {
 });
 
 // WebSocket Server auf HTTP-Server aufsetzen
-const wss = new WebSocket.Server({ server });
+const ws = new WebSocket.Server({ server });
 
 let nextId = 1;
 const clients = new Map(); // ws -> {id}
-
-wss.on('connection', ws => {
+ws.on('connection', async ws => {
   if (clients.size >= 10) {
     ws.close(1000, "Max players reached");
     return;
@@ -51,6 +50,13 @@ wss.on('connection', ws => {
 
   ws.send(JSON.stringify({ type: "init", id: playerId }));
   console.log(`Player ${playerId} connected. Active players: ${clients.size}`);
+
+  // Redis: Spielerzahl hochzählen
+  const PUBLIC_PORT = process.env.PUBLIC_PORT || PORT;
+  const serverKey = `server:${PUBLIC_PORT}`;
+  const newCount = await redis.hincrby(serverKey, "players", 1);
+  console.log(`Redis players count is now: ${newCount}`);
+
 
   ws.on('message', msg => {
     const data = JSON.parse(msg);
@@ -66,16 +72,22 @@ wss.on('connection', ws => {
     }
   });
 
-  ws.on('close', () => {
+  ws.on('close', async () => {
     clients.delete(ws);
     console.log(`Player ${playerId} disconnected. Active clients: ${clients.size}`);
+
+    // Redis: Spielerzahl runterzählen
+    const newCount = await redis.hincrby(serverKey, "players", -1);
+    console.log(`Redis players count after disconnect: ${newCount}`);
+
     for (let [client] of clients) {
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify({ type: "remove", id: playerId }));
       }
     }
-  });
+  })
 });
+
 
 // Clean shutdown
 const shutdown = async () => {

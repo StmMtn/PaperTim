@@ -29,8 +29,6 @@ services:
     build: ./gameserver
     image: gameserver:latest  
     container_name: gameserver
-    deploy:
-      replicas: 0
     ports:
       - "8443:8443"
     depends_on:

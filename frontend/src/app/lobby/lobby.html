@@ -3,6 +3,6 @@
 <ul>
     <li *ngFor="let server of servers">
     Server {{server.id}} - Port: {{server.port}} - Spieler: {{server.players}}
-    <a [href]="'https://localhost:' + server.port" target="_blank">Beitreten</a>
+    <a [href]="'http://localhost:' + server.port" target="_blank">Beitreten</a>
     </li>
 </ul>
