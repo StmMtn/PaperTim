@@ -1,8 +1,50 @@
-<p>lobby works!</p>
-<button (click)="startServer()">Neuen Server starten</button>
-<ul>
-    <li *ngFor="let server of servers">
-    Server {{server.id}} - Port: {{server.port}} - Spieler: {{server.players}}
-    <a [href]="'http://localhost:' + server.port" target="_blank">Beitreten</a>
+<div class="container my-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold">Lobby</h2>
+    <button class="btn btn-primary" (click)="startServer()">
+      <i class="bi bi-plus-circle me-1"></i> Neuen Server starten
+    </button>
+  </div>
+
+  <ul class="list-group">
+    <!-- echte Server -->
+    <li *ngFor="let server of servers"
+        class="list-group-item d-flex justify-content-between align-items-center shadow-sm mb-2 rounded">
+      <div>
+        <span class="fw-semibold">Server: <strong>{{server.id || '...'}}</strong></span>
+        <span class="text-muted ms-2">Port: <strong>{{server.port || '...'}}</strong></span>
+
+        <!-- Spieler Badge (immer grau) -->
+        <span class="badge bg-secondary ms-3">
+          Spieler: {{server.players || 0}}
+        </span>
+
+        <!-- Dev Badge -->
+        <span *ngIf="server.port === devServerPort" class="badge bg-success ms-2">Dev Server</span>
+        <!-- Voll Badge -->
+        <span *ngIf="server.players >= maxPlayers" class="badge bg-danger ms-2">Voll</span>
+      </div>
+      <div>
+        <a [href]="'http://localhost:' + server.port"
+           target="_blank"
+           class="btn btn-sm btn-success me-2"
+           [class.disabled]="isFull(server)">
+          <i class="bi bi-box-arrow-in-right me-1"></i> Beitreten
+        </a>
+
+        <!-- Stop Button nur für Nicht-Dev -->
+        <button *ngIf="server.port !== devServerPort"
+                (click)="stopServer(server.id)"
+                class="btn btn-sm btn-danger">
+          <i class="bi bi-trash me-1"></i> Stoppen
+        </button>
+      </div>
     </li>
-</ul>
+
+    <!-- temporäre Server -->
+    <li *ngFor="let temp of startingServers"
+        class="list-group-item text-muted text-center fst-italic mb-2 rounded shadow-sm">
+      <i class="bi bi-hourglass-split me-1"></i> Server startet...
+    </li>
+  </ul>
+</div>

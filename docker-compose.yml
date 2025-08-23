@@ -1,6 +1,9 @@
+# ganz oben:
+name: papertim   # <-- fester Compose-Projektname
+
 networks:
   gamenet:
-    name: gamenet  # fester Name auch außerhalb von compose sichtbar
+    name: gamenet
 
 services:
   redis:
@@ -13,6 +16,7 @@ services:
     networks: [gamenet]
     environment:
       - DOCKER_NETWORK=gamenet
+      - COMPOSE_PROJECT_NAME=papertim   # <-- wichtig für Labels
     ports: ["3000:3000"]
     depends_on: [redis]
     volumes:
