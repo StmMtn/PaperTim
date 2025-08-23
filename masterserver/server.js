@@ -62,12 +62,6 @@ app.post('/servers', async (req, res) => {
     });
 
     await container.start();
-
-    // 3) In Redis registrieren
-    const serverKey = `server:${hostPort}`;
-    await redis.hset(serverKey, { host: 'localhost', port: hostPort, players: 0 });
-    await redis.expire(serverKey, 3600);
-
     res.json({ msg: 'Server gestartet', id: container.id, port: hostPort });
   } catch (err) {
     console.error('Fehler beim Starten:', err);

@@ -60,3 +60,18 @@ Dieses Verteilte-Systeme-Projekt soll über Godot ein Spiel hervorbringen welche
 - `localhost.pem` und `localhost-key.pem` sind private Zertifikate für die lokale Entwicklung und sollten **nicht** ins Git-Repository gepusht werden. Daher in `.gitignore` eintragen.
 - Für mehr als 10 WebSocket-Clients ist der Server nicht ausgelegt.
 - Das HTTPS ist nötig, damit der Browser WebGL und WebSocket-Verbindungen im sicheren Kontext erlaubt.
+
+## Ablauf des Projekts:
+- Masterserver
+    - wählt einen freien Host-Port (z. B. 43943).
+    - startet den Container gameserver:latest mit Port-Mapping Host:43943 → Container:8443 und gibt PUBLIC_PORT=43943 per ENV mit.
+
+- Gameserver (im Container)
+  - lauscht immer auf 8443 (interner Container-Port).
+  - liefert die Godot-Buildfiles und /config.
+  - /config baut die WebSocket-URL aus dem Host-Header (z. B. ws://localhost:43943) – damit ist der dyn. Port automatisch richtig.
+  - registriert sich in Redis unter server:43943 und hält die players-Zahl aktuell.
+
+- Godot (Web)
+  - lädt per HTTPRequest absolute URL window.location.origin + "/config".
+  - bekommt ws_url zurück (z. B. ws://localhost:43943) und verbindet sich darüber mit dem WS-Server.
