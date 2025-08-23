@@ -1,35 +1,34 @@
+networks:
+  gamenet:
+    name: gamenet  # fester Name auch außerhalb von compose sichtbar
+
 services:
   redis:
     image: redis:7
-    container_name: redis
-    ports:
-      - "6379:6379"
+    networks: [gamenet]
+    ports: ["6379:6379"]
 
   masterserver:
     build: ./masterserver
-    container_name: masterserver
-    ports:
-      - "3000:3000"
-    depends_on:
-      - redis
+    networks: [gamenet]
+    environment:
+      - DOCKER_NETWORK=gamenet
+    ports: ["3000:3000"]
+    depends_on: [redis]
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock  # Master darf Docker steuern
+      - /var/run/docker.sock:/var/run/docker.sock
 
   frontendlobby:
-    build:
-      context: ./Frontend
-    image: frontendlobby:v1
-    container_name: frontendlobby
-    ports:
-      - "8081:8081"
-    depends_on:
-      - masterserver
+    build: { context: ./Frontend }
+    networks: [gamenet]
+    ports: ["8081:8081"]
+    depends_on: [masterserver]
 
+  # optional: statischer Dev-Gameserver
   gameserver:
     build: ./gameserver
-    image: gameserver:latest  
+    image: gameserver:latest
+    networks: [gamenet]
     container_name: gameserver
-    ports:
-      - "8443:8443"
-    depends_on:
-      - redis
+    ports: ["8443:8443"]
+    depends_on: [redis]

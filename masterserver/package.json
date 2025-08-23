@@ -1,8 +1,10 @@
 {
+  "type": "module",
   "dependencies": {
     "cors": "^2.8.5",
     "dockerode": "^4.0.7",
     "express": "^5.1.0",
+    "get-port": "^7.1.0",
     "ioredis": "^5.7.0"
   },
   "devDependencies": {

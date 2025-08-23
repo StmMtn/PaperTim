@@ -10,6 +10,4 @@ COPY ./ ./
 # Client
 COPY ./client/Game/ ./client/Game
 
-EXPOSE 8443
-
 CMD ["node", "server.js"]
