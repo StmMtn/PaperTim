@@ -1,0 +1,89 @@
+[gd_scene load_steps=5 format=3 uid="uid://dmayfmv3ifkc3"]
+
+[ext_resource type="PackedScene" uid="uid://cwfoqyyxdscwg" path="res://kurve/player.tscn" id="1"]
+[ext_resource type="Script" uid="uid://3kdsn02oq8os" path="res://kurve/game.gd" id="2"]
+[ext_resource type="Texture2D" uid="uid://bs4bd2uyl0i0f" path="res://kurve/sprites/Pixel.png" id="3"]
+
+[sub_resource type="RectangleShape2D" id="4"]
+size = Vector2(976, 696)
+
+[node name="Game" type="Node2D"]
+script = ExtResource("2")
+player_packed = ExtResource("1")
+spawn_bounds_x = Vector2(200, 1000)
+spawn_bounds_y = Vector2(200, 600)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Control" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/Control"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="ExitInstructions" type="Label" parent="UI/Control/VBoxContainer"]
+layout_mode = 2
+text = "Press escape to exit"
+horizontal_alignment = 1
+uppercase = true
+
+[node name="FPSCounter" type="Label" parent="UI/Control/VBoxContainer"]
+layout_mode = 2
+text = "60"
+
+[node name="LabelBlue" type="Label" parent="UI/Control/VBoxContainer"]
+layout_mode = 2
+text = "BLUE: 0"
+vertical_alignment = 1
+
+[node name="LabelOrange" type="Label" parent="UI/Control/VBoxContainer"]
+layout_mode = 2
+text = "ORANGE: 0"
+vertical_alignment = 1
+
+[node name="LabelGreen" type="Label" parent="UI/Control/VBoxContainer"]
+layout_mode = 2
+text = "GREEN: 0"
+vertical_alignment = 1
+
+[node name="LabelPurple" type="Label" parent="UI/Control/VBoxContainer"]
+layout_mode = 2
+text = "PURPLE: 0	"
+vertical_alignment = 1
+
+[node name="LabelRoundOver" type="Label" parent="UI/Control/VBoxContainer"]
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RoundStartTimer" type="Timer" parent="."]
+one_shot = true
+
+[node name="RoundOverTimer" type="Timer" parent="."]
+wait_time = 2.0
+one_shot = true
+
+[node name="Walls" type="Area2D" parent="." groups=["Wall"]]
+priority = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls"]
+position = Vector2(500, 360)
+shape = SubResource("4")
+
+[node name="East" type="Sprite2D" parent="Walls"]
+position = Vector2(1006, 0)
+rotation = 1.5708
+scale = Vector2(720, 6.9603)
+texture = ExtResource("3")
+offset = Vector2(0.5, 0.5)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[connection signal="timeout" from="RoundStartTimer" to="." method="_on_RoundStartTimer_timeout"]
+[connection signal="timeout" from="RoundOverTimer" to="." method="_on_RoundOverTimer_timeout"]
+[connection signal="area_exited" from="Walls" to="." method="_on_Walls_area_exited"]
