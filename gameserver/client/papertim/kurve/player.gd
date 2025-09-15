@@ -14,15 +14,17 @@ func set_input(left: bool, right: bool) -> void:
 # --- PARAMS ---
 @export var player_packed: PackedScene
 @export var player_num: int = 1
-@export var speed: float = 20.0
-@export var rotate_speed: float = 10.0
+@export var speed: float = 25.0
+@export var rotate_speed: float = 12.5
 @export var place_point_distance: float = 5.0
-@export var line_time_limits: Vector2 = Vector2(5, 8)
+@export var line_time_limits: Vector2 = Vector2(1.6, 6)
 @export var gap_time_limit: float = 0.5
 @export var trail_packed: PackedScene
-
 @onready var sprite: Sprite2D = $Sprite
 @onready var radius_squared: float = pow(($CollisionShape2D.shape as CircleShape2D).radius, 2)
+@export var max_trail_seconds: float = 8.0  # so lange „lebt“ der sichtbare Trail
+
+
 
 var current_line_limit: float = 5.0
 var line_timer: float = 0.0
@@ -106,6 +108,8 @@ func add_new_trail():
 	trail = trail_packed.instantiate()
 	get_parent().call_deferred("add_child", trail)
 	trail.default_color = get_player_color()
+	if "max_length_px" in trail:
+		trail.max_length_px = max_trail_seconds * speed
 	spawn_trail.emit(trail)
 	add_new_point()
 

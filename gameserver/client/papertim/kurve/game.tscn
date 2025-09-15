@@ -1,8 +1,7 @@
-[gd_scene load_steps=5 format=3 uid="uid://dmayfmv3ifkc3"]
+[gd_scene load_steps=4 format=3 uid="uid://dmayfmv3ifkc3"]
 
 [ext_resource type="PackedScene" uid="uid://cwfoqyyxdscwg" path="res://kurve/player.tscn" id="1"]
 [ext_resource type="Script" uid="uid://3kdsn02oq8os" path="res://kurve/game.gd" id="2"]
-[ext_resource type="Texture2D" uid="uid://bs4bd2uyl0i0f" path="res://kurve/sprites/Pixel.png" id="3"]
 
 [sub_resource type="RectangleShape2D" id="4"]
 size = Vector2(976, 696)
@@ -73,12 +72,13 @@ priority = 1
 position = Vector2(500, 360)
 shape = SubResource("4")
 
-[node name="East" type="Sprite2D" parent="Walls"]
-position = Vector2(1006, 0)
-rotation = 1.5708
-scale = Vector2(720, 6.9603)
-texture = ExtResource("3")
-offset = Vector2(0.5, 0.5)
+[node name="North" type="Line2D" parent="Walls"]
+
+[node name="South" type="Line2D" parent="Walls"]
+
+[node name="East" type="Line2D" parent="Walls"]
+
+[node name="West" type="Line2D" parent="Walls"]
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 offset_right = 40.0
