@@ -8,6 +8,9 @@ var use_rng := false
 var steer_left: bool = false
 var steer_right: bool = false
 
+var next_gap_in := 0.0
+var gap_len := 0.0
+
 func set_input(left: bool, right: bool) -> void:
 	steer_left = left
 	steer_right = right
@@ -21,6 +24,7 @@ func set_input(left: bool, right: bool) -> void:
 @export var rotate_speed: float = 12.5
 @export var place_point_distance: float = 5.0
 @export var line_time_limits: Vector2 = Vector2(1.6, 6)
+@export var gap_length_limits: Vector2 = Vector2(0.5, 2)
 @export var gap_time_limit: float = 0.5
 @export var trail_packed: PackedScene
 @onready var sprite: Sprite2D = $Sprite
@@ -55,6 +59,7 @@ func start():
 	$Arrow.visible = true
 	$Arrow.rotation = angle + PI / 2.0
 	use_rng = false
+	_reset_gap_schedule()
 	add_new_trail()
 	set_active(false)
 
@@ -97,22 +102,18 @@ func _physics_process(delta):
 			if need_point:
 				add_new_point()
 
-		if line_timer >= current_line_limit:
+		if line_timer >= next_gap_in:
 			line_timer = 0.0
 			drawing_line = false
 	else:
 		gap_timer += delta
-		if gap_timer >= gap_time_limit:
+		if gap_timer >= gap_len:
 			gap_timer = 0.0
 			drawing_line = true
 			add_new_trail()
+			_reset_gap_schedule() 
 
 func add_new_trail():
-	current_line_limit = (
-		rng.randf_range(line_time_limits.x, line_time_limits.y)
-		if use_rng
-		else randf_range(line_time_limits.x, line_time_limits.y)
-	)
 	trail = trail_packed.instantiate()
 	get_parent().call_deferred("add_child", trail)
 	trail.default_color = get_player_color()
@@ -146,6 +147,14 @@ func start_with_angle(angle: float, network_mode: bool, seed: int) -> void:
 	use_rng = network_mode
 	if network_mode:
 		rng.seed = seed
-
+	_reset_gap_schedule()
 	add_new_trail()
 	set_active(false)
+	
+func _reset_gap_schedule() -> void:
+	if use_rng:
+		next_gap_in = rng.randf_range(line_time_limits.x, line_time_limits.y)   # Dauer „zeichnen“
+		gap_len     = rng.randf_range(gap_length_limits.x, gap_length_limits.y) # Dauer „Lücke“
+	else:
+		next_gap_in = randf_range(line_time_limits.x, line_time_limits.y)
+		gap_len     = randf_range(gap_length_limits.x, gap_length_limits.y)
