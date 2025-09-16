@@ -17,7 +17,11 @@ use_viewport_bounds = true
 
 [node name="Control" type="Control" parent="UI"]
 layout_mode = 3
-anchors_preset = 0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="UI/Control"]
 layout_mode = 0
@@ -58,6 +62,22 @@ vertical_alignment = 1
 layout_mode = 2
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="ReadyPanel" type="PanelContainer" parent="UI/Control/VBoxContainer"]
+layout_mode = 2
+mouse_filter = 1
+
+[node name="Body" type="VBoxContainer" parent="UI/Control/VBoxContainer/ReadyPanel"]
+layout_mode = 2
+
+[node name="ReadyButton" type="CheckButton" parent="UI/Control/VBoxContainer/ReadyPanel/Body"]
+layout_mode = 2
+
+[node name="YouLabel" type="Label" parent="UI/Control/VBoxContainer/ReadyPanel/Body"]
+layout_mode = 2
+
+[node name="ReadyList" type="VBoxContainer" parent="UI/Control/VBoxContainer/ReadyPanel/Body"]
+layout_mode = 2
 
 [node name="RoundStartTimer" type="Timer" parent="."]
 one_shot = true

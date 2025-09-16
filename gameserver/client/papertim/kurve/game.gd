@@ -1,4 +1,6 @@
 extends Node2D
+class_name GameRoot
+signal round_state_changed(running: bool)
 
 @export var player_packed: PackedScene
 @export var spawn_bounds_x: Vector2 = Vector2.ZERO
@@ -10,7 +12,8 @@ extends Node2D
 @export var use_viewport_bounds: bool = false
 @export var arena_margin: int = 40
 
-@export var head_radius_px: float = 7.0  # auf deinen Player-Kopfradius stellen
+@export var head_radius_px: float = 7.0         # dein echter Kopf-Radius
+@export var spawn_extra_margin: float = 60.0    # wie weit weg vom Rand spawnen
 
 var _play_bounds_x: Vector2
 var _play_bounds_y: Vector2
@@ -26,6 +29,8 @@ var round_running := false
 
 func _ready():
 	randomize()
+	_ensure_ready_ui()
+	_fix_ui_layout()
 	if use_viewport_bounds:
 		_update_bounds_from_viewport()
 
@@ -97,10 +102,17 @@ func _build_arena_from_bounds() -> void:
 	if shape:
 		shape.size = safe_size
 
+	var spawn_inset := inset + spawn_extra_margin
+	var sx0 := x0 + spawn_inset
+	var sx1 := x1 - spawn_inset
+	var sy0 := y0 + spawn_inset
+	var sy1 := y1 - spawn_inset
+	if sx1 < sx0: sx1 = sx0
+	if sy1 < sy0: sy1 = sy0
+	
 	# Optional: sichere Spawn-Grenzen merken (damit nicht im Todesband gespawnt wird)
 	_play_bounds_x = Vector2(x0 + inset, x1 - inset)
 	_play_bounds_y = Vector2(y0 + inset, y1 - inset)
-
 
 func _setup_walls() -> void:
 	var walls: Area2D = $"Arena/Walls"
@@ -143,15 +155,26 @@ func start_round() -> void:
 	for t in trails: t.queue_free()
 	trails.clear()
 
+	#for p in players:
+		#players[p][0].position = Vector2(
+			#randf_range(spawn_bounds_x.x, spawn_bounds_x.y),
+			#randf_range(spawn_bounds_y.x, spawn_bounds_y.y) OKE
+		#)
+		#players[p][0].start()
+	var sx0 := _play_bounds_x.x + spawn_extra_margin
+	var sx1 := _play_bounds_x.y - spawn_extra_margin
+	var sy0 := _play_bounds_y.x + spawn_extra_margin
+	var sy1 := _play_bounds_y.y - spawn_extra_margin
 	for p in players:
 		players[p][0].position = Vector2(
-			randf_range(spawn_bounds_x.x, spawn_bounds_x.y),
-			randf_range(spawn_bounds_y.x, spawn_bounds_y.y)
+			randf_range(sx0, sx1),
+			randf_range(sy0, sy1)
 		)
-		players[p][0].start()
-
+		players[p][0].start() 
+	
 	remaining_players = players.size()
 	round_running = true
+	emit_signal("round_state_changed", round_running)
 	$RoundStartTimer.start()
 
 
@@ -173,6 +196,7 @@ func start_round_net(spawns: Dictionary, seed: int) -> void:
 
 	remaining_players = players.size()
 	round_running = true
+	emit_signal("round_state_changed", round_running)
 	$RoundStartTimer.start()
 
 
@@ -196,6 +220,7 @@ func _process(_delta: float) -> void:
 func round_over() -> void:
 	$RoundOverTimer.start()
 	round_running = false
+	emit_signal("round_state_changed", round_running)
 	if remaining_players == 1:
 		for p in players:
 			if players[p][0].is_alive():
@@ -251,12 +276,13 @@ func _on_RoundStartTimer_timeout() -> void:
 
 func _on_RoundOverTimer_timeout() -> void:
 	$UI/Control/VBoxContainer/LabelRoundOver.text = ""
-	if players.size() > 0:
-		if network_driven:
-			get_parent().call_deferred("_host_request_next_round")
-		else:
-			start_round()
-
+	#if players.size() > 0:
+		#if network_driven:
+			#get_parent().call_deferred("_host_request_next_round")
+		#else:
+			#start_round()
+	if not network_driven:
+		start_round()  # Lokalmodus darf direkt starten
 
 # --- WICHTIGER Handler: Spieler verlässt die Arena-Fläche
 func _on_Walls_area_exited(area: Area2D) -> void:
@@ -306,3 +332,165 @@ func remove_player(pid:int) -> void:
 		players[pid][0].queue_free()
 		players.erase(pid)
 		remaining_players = max(0, players.size())
+		
+# In game.gd hinzufügen
+
+func update_ready_ui(my_id: int, host_id: int, ids: Array, ready_by_pid: Dictionary, my_ready: bool) -> void:
+	var card := $UI/Control.get_node_or_null("ReadyCard") as PanelContainer
+	if card == null: 
+		return
+	var margin := card.get_node_or_null("Margin")
+	if margin == null:
+		return
+	var body := margin.get_node_or_null("Body") as VBoxContainer
+	if body == null:
+		return
+
+	var you_lbl := body.get_node_or_null("YouLabel") as Label
+	var btn := body.get_node_or_null("ReadyButton") as CheckButton
+	var list := body.get_node_or_null("ReadyList") as VBoxContainer
+
+	# eigene Farbe/Host
+	if you_lbl and players.has(my_id):
+		var color_name := _color_name_for(players[my_id][0].player_num)
+		var host_tag := " (HOST)" if my_id == host_id else ""
+		you_lbl.text = "You: %s%s" % [color_name, host_tag]
+
+	# Button-Status spiegeln
+	if btn and btn.has_method("set_pressed_no_signal"):
+		btn.set_pressed_no_signal(my_ready)
+
+	# Liste bauen
+	if list:
+		for c in list.get_children(): c.queue_free()
+		for pid in ids:
+			var is_me: bool = (pid == my_id)
+			var r: bool = bool(ready_by_pid.get(pid, false))
+			var colname: String = _color_name_for(players[pid][0].player_num) if players.has(pid) else "?"
+			var me_tag: String = " (you)" if is_me else ""
+			var state: String = "READY" if r else "waiting..."
+
+			var line := Label.new()
+			line.text = "%s%s — %s" % [colname, me_tag, state]
+			var font_col: Color = Color(0.6, 1.0, 0.6) if r else Color(0.85, 0.85, 0.85)
+			line.add_theme_color_override("font_color", font_col)
+			list.add_child(line)
+
+
+	# Card nur zeigen, wenn keine Runde läuft
+	card.visible = not round_running
+
+func _color_name_for(n: int) -> String:
+	match n:
+		1: return "BLUE"
+		2: return "ORANGE"
+		3: return "GREEN"
+		4: return "PURPLE"
+		_: return "?"
+func _ensure_ready_ui() -> void:
+	var root := $UI/Control                                # füllt den Screen
+	# Root darf Maus durchlassen, Card fängt sie ab:
+	root.mouse_filter = Control.MOUSE_FILTER_PASS
+	root.set_anchors_preset(Control.PRESET_FULL_RECT, true)
+	root.set_offsets_preset(Control.PRESET_FULL_RECT)
+	root.z_index = 100
+
+	# Panel oben links: "ReadyCard"
+	var card := root.get_node_or_null("ReadyCard") as PanelContainer
+	if card == null:
+		card = PanelContainer.new()
+		card.name = "ReadyCard"
+		root.add_child(card)
+
+		# Position & Größe (oben links, schön klein)
+		card.position = Vector2(12, 12)
+		card.custom_minimum_size = Vector2(280, 0)
+		card.mouse_filter = Control.MOUSE_FILTER_STOP   # fängt Klicks ab
+		card.z_index = 200
+
+		# Innen: Margin -> VBox(Body)
+		var margin := MarginContainer.new()
+		margin.name = "Margin"
+		card.add_child(margin)
+		margin.add_theme_constant_override("margin_left",  8)
+		margin.add_theme_constant_override("margin_top",   8)
+		margin.add_theme_constant_override("margin_right", 8)
+		margin.add_theme_constant_override("margin_bottom",8)
+
+		var body := VBoxContainer.new()
+		body.name = "Body"
+		margin.add_child(body)
+		body.add_theme_constant_override("separation", 6)
+
+		# Zeile: "You: …"
+		var you := Label.new()
+		you.name = "YouLabel"
+		you.text = "You: ?"
+		body.add_child(you)
+
+		# Ready-Button
+		var btn := CheckButton.new()
+		btn.name = "ReadyButton"
+		btn.text = "Ready (R)"
+		btn.toggle_mode = true
+		btn.mouse_filter = Control.MOUSE_FILTER_STOP
+		btn.focus_mode = Control.FOCUS_ALL
+		body.add_child(btn)
+
+		# Liste der Spieler
+		var list := VBoxContainer.new()
+		list.name = "ReadyList"
+		list.custom_minimum_size = Vector2(0, 100)     # genug Höhe
+		list.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		body.add_child(list)
+		
+		# --- Legacy-UI aufräumen: alles unter VBoxContainer, was "Ready..." heißt, entfernen
+		var vbox := $UI/Control.get_node_or_null("VBoxContainer")
+		if vbox:
+			var old_btn := vbox.get_node_or_null("ReadyButton")
+			if old_btn: old_btn.queue_free()
+
+			var old_panel := vbox.get_node_or_null("ReadyPanel")
+			if old_panel: old_panel.queue_free()
+
+
+func _fix_ui_layout() -> void:
+	var root := $UI/Control
+	root.set_anchors_preset(Control.PRESET_FULL_RECT, true)
+	root.set_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_PASS
+	root.z_index = 100
+
+	# nur die Card richtig „oben“ halten & klickbar
+	var card := root.get_node_or_null("ReadyCard") as PanelContainer
+	if card:
+		card.z_index = 200
+		card.mouse_filter = Control.MOUSE_FILTER_STOP
+	# in _ensure_ready_ui(), nachdem du card angelegt hast:
+	card.add_theme_color_override("panel", Color(0, 0, 0, 0.35))
+func _enter_tree() -> void:
+	# reagiert zuverlässig (auch im Web) auf Fullscreen/Resize
+	get_viewport().size_changed.connect(_on_viewport_resized)
+
+func _on_viewport_resized() -> void:
+	# Nur dann neu berechnen:
+	# - wenn wir Viewport-Bounds benutzen
+	# - und NICHT gerade eine Net-Runde läuft (sonst Desync)
+	if use_viewport_bounds and (not network_driven or not round_running):
+		_update_bounds_from_viewport()
+		_build_arena_from_bounds()
+
+# Host gibt die aktuell verwendete Arena zurück
+func get_arena_rect() -> Dictionary:
+	return {
+		"x0": spawn_bounds_x.x,
+		"x1": spawn_bounds_x.y,
+		"y0": spawn_bounds_y.x,
+		"y1": spawn_bounds_y.y
+	}
+
+# Client setzt Arena exakt auf Host-Werte
+func set_arena_from_host(ar: Dictionary) -> void:
+	spawn_bounds_x = Vector2(float(ar.get("x0", 0.0)), float(ar.get("x1", 0.0)))
+	spawn_bounds_y = Vector2(float(ar.get("y0", 0.0)), float(ar.get("y1", 0.0)))
+	_build_arena_from_bounds()

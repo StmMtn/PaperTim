@@ -110,22 +110,32 @@ wss.on('connection', async (ws, req) => {
 
   // Roster für neuen Client
   const existingIds = [];
+  const readyIds = [];
   for (const sock of set) {
     const meta = clients.get(sock);
     if (meta) existingIds.push(meta.id);
+    if (meta.ready) readyIds.push(meta.id);
   }
 
   // init + roster nur an neuen Client
   ws.send(JSON.stringify({ type: 'init', id: playerId }));
   ws.send(JSON.stringify({ type: 'roster', ids: existingIds }));
+    ws.send(JSON.stringify({ type: 'ready_state', ids: readyIds }));
 
   // registrieren & allen anderen "join"
-  clients.set(ws, { id: playerId, roomId });
+  clients.set(ws, { id: playerId, roomId, ready: false });
   set.add(ws);
   broadcastToRoom(roomId, { type: 'join', id: playerId }, ws);
 
   ws.on('message', (msg) => {
     let data; try { data = JSON.parse(msg); } catch { return; }
+
+    if (data.type === 'ready') {
+      const meta = clients.get(ws);
+      if (meta) meta.ready = !!data.ready;
+      broadcastToRoom(roomId, { type: 'ready', id: playerId, ready: !!data.ready }, ws);
+      return;
+    }
 
     if (data.type === 'input') {
       broadcastToRoom(roomId, { type: 'input', id: playerId, left: !!data.left, right: !!data.right });
