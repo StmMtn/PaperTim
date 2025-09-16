@@ -1,5 +1,8 @@
 extends Area2D
 signal spawn_trail(new_trail)
+var rng := RandomNumberGenerator.new()
+var use_rng := false
+
 
 # --- NET-ENTKOPPLUNG ---
 var steer_left: bool = false
@@ -51,6 +54,7 @@ func start():
 	forward = Vector2(cos(angle), sin(angle))
 	$Arrow.visible = true
 	$Arrow.rotation = angle + PI / 2.0
+	use_rng = false
 	add_new_trail()
 	set_active(false)
 
@@ -104,7 +108,11 @@ func _physics_process(delta):
 			add_new_trail()
 
 func add_new_trail():
-	current_line_limit = randf_range(line_time_limits.x, line_time_limits.y)
+	current_line_limit = (
+		rng.randf_range(line_time_limits.x, line_time_limits.y)
+		if use_rng
+		else randf_range(line_time_limits.x, line_time_limits.y)
+	)
 	trail = trail_packed.instantiate()
 	get_parent().call_deferred("add_child", trail)
 	trail.default_color = get_player_color()
@@ -112,6 +120,7 @@ func add_new_trail():
 		trail.max_length_px = max_trail_seconds * speed
 	spawn_trail.emit(trail)
 	add_new_point()
+
 
 func add_new_point():
 	var spawn_pos: Vector2 = position - forward * 7.0
@@ -124,3 +133,19 @@ func get_player_color():
 	elif player_num == 2: return Color.CORAL
 	elif player_num == 3: return Color.GREEN_YELLOW
 	else: return Color.MEDIUM_ORCHID
+	
+func start_with_angle(angle: float, network_mode: bool, seed: int) -> void:
+	line_timer = 0.0
+	gap_timer = 0.0
+	drawing_line = true
+
+	forward = Vector2(cos(angle), sin(angle))
+	$Arrow.visible = true
+	$Arrow.rotation = angle + PI / 2.0
+
+	use_rng = network_mode
+	if network_mode:
+		rng.seed = seed
+
+	add_new_trail()
+	set_active(false)

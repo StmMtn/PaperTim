@@ -10,18 +10,26 @@ var trails: Array = []
 var remaining_players: int
 var round_running := false
 
-func _ready() -> void:
+func _ready():
 	randomize()
-	if not network_driven:
+	if network_driven:
+		# Lokales Join-Menü aus
+		$UI/Control/VBoxContainer/ExitInstructions.visible = false
+		for n in ["LabelBlue","LabelOrange","LabelGreen","LabelPurple"]:
+			if $UI/Control/VBoxContainer.has_node(n):
+				$UI/Control/VBoxContainer.get_node(n).visible = false
+	else:
+		# Lokaler Modus (Main Menu → GlobalData.player_nums)
 		for n in GlobalData.player_nums:
 			var new_player = player_packed.instantiate()
-			new_player.use_local_input = true 
 			new_player.spawn_trail.connect(_on_spawn_trail)
 			add_child(new_player)
 			new_player.player_num = n
 			players[n] = [new_player, 0]
+
 	if not network_driven:
 		call_deferred("start_round")
+
 
 
 func start_round() -> void:
@@ -41,6 +49,28 @@ func start_round() -> void:
 	round_running = true
 	print("start_round(): players=", players.size())
 	$RoundStartTimer.start()
+
+func start_round_net(spawns: Dictionary, seed: int) -> void:
+	for t in trails: t.queue_free()
+	trails.clear()
+
+	for pid_str in spawns.keys():
+		var pid := int(pid_str)
+		if not players.has(pid):
+			add_player_from_net(pid)
+
+	for pid_str in spawns.keys():
+		var pid := int(pid_str)
+		var s: Dictionary = spawns[pid_str]
+		var pl = players[pid][0]
+		pl.position = Vector2(float(s["x"]), float(s["y"]))    
+		pl.start_with_angle(float(s["angle"]), true, seed + pid) 
+
+	remaining_players = players.size()
+	round_running = true
+	$RoundStartTimer.start()
+
+
 
 func _process(delta: float) -> void:
 	var fps := $UI/Control/VBoxContainer.get_node_or_null("FPSCounter")
@@ -115,10 +145,15 @@ func _on_RoundStartTimer_timeout() -> void:
 		players[p][0].set_active(true)
 		players[p][0].get_node("Arrow").visible = false
 
+# game.gd
 func _on_RoundOverTimer_timeout() -> void:
 	$UI/Control/VBoxContainer/LabelRoundOver.text = ""
 	if players.size() > 0:
-		start_round()
+		if network_driven:
+			get_parent().call_deferred("_host_request_next_round")
+		else:
+			start_round()
+
 
 func _on_Walls_area_exited(area: Area2D) -> void:
 	# Collision for player hitting the walls.
@@ -134,11 +169,25 @@ func add_player_from_net(pid: int) -> void:
 	add_child(new_player)
 	new_player.player_num = (pid % 4) + 1
 	players[pid] = [new_player, 0]
+
+	# UI sichtbar machen
 	match new_player.player_num:
 		1: $UI/Control/VBoxContainer/LabelBlue.visible = true
 		2: $UI/Control/VBoxContainer/LabelOrange.visible = true
 		3: $UI/Control/VBoxContainer/LabelGreen.visible = true
 		4: $UI/Control/VBoxContainer/LabelPurple.visible = true
+
+	# >>> NEU: Falls Runde schon läuft, direkt spawnen & aktivieren
+	if round_running:
+		new_player.position = Vector2(
+			randf_range(spawn_bounds_x.x, spawn_bounds_x.y),
+			randf_range(spawn_bounds_y.x, spawn_bounds_y.y)
+		)
+		new_player.start()
+		new_player.set_active(true)
+		new_player.get_node("Arrow").visible = false
+		remaining_players = players.size()
+
 
 
 func set_input_for_pid(pid: int, left: bool, right: bool) -> void:

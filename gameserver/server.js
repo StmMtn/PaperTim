@@ -64,48 +64,95 @@ const server = app.listen(INTERNAL_PORT, async () => {
 });
 
 // WebSocket an denselben HTTP-Server hängen
+// WebSocket an denselben HTTP-Server hängen
 const wss = new WebSocket.Server({ server });
 let nextId = 1;
-const clients = new Map();
 
-wss.on('connection', async (ws) => {
-  if (clients.size >= 10) {
-    ws.close(1000, 'Max players reached');
-    return;
+// globaler Überblick (für Redis-Zähler etc.)
+const clients = new Map(); // Map<ws, { id, roomId }>
+
+// NEU: Rooms: roomId -> Set<ws>
+const rooms = new Map(); 
+
+function getOrCreateRoom(roomId) {
+  if (!rooms.has(roomId)) rooms.set(roomId, new Set());
+  return rooms.get(roomId);
+}
+
+function broadcastToRoom(roomId, msgObj, excludeWs = null) {
+  const set = rooms.get(roomId);
+  if (!set) return;
+  const data = JSON.stringify(msgObj);
+  for (const ws of set) {
+    if (ws !== excludeWs && ws.readyState === WebSocket.OPEN) {
+      ws.send(data);
+    }
   }
+}
+
+// kleine Helper zum Query-Param-Parsing
+function getRoomFromReq(req) {
+  try {
+    const url = new URL(req.url, 'http://localhost');
+    const r = url.searchParams.get('room');
+    return (r && String(r)) || 'default';
+  } catch {
+    return 'default';
+  }
+}
+
+wss.on('connection', async (ws, req) => {
+  if (clients.size >= 10) { ws.close(1000, 'Max players reached'); return; }
 
   const playerId = nextId++;
-  clients.set(ws, { id: playerId });
-  ws.send(JSON.stringify({ type: 'init', id: playerId }));
-  console.log(`Player ${playerId} connected. Active players: ${clients.size}`);
+  const roomId = getRoomFromReq(req);
+  const set = getOrCreateRoom(roomId);
 
-  try {
-    const newCount = await redis.hincrby(SERVER_KEY, 'players', 1);
-    console.log(`Players jetzt: ${newCount} @ public:${PUBLIC_PORT}`);
-  } catch (e) {
-    console.error('Redis hincrby +1 failed:', e.message);
+  // Roster für neuen Client
+  const existingIds = [];
+  for (const sock of set) {
+    const meta = clients.get(sock);
+    if (meta) existingIds.push(meta.id);
   }
 
+  // init + roster nur an neuen Client
+  ws.send(JSON.stringify({ type: 'init', id: playerId }));
+  ws.send(JSON.stringify({ type: 'roster', ids: existingIds }));
+
+  // registrieren & allen anderen "join"
+  clients.set(ws, { id: playerId, roomId });
+  set.add(ws);
+  broadcastToRoom(roomId, { type: 'join', id: playerId }, ws);
+
   ws.on('message', (msg) => {
-    const data = JSON.parse(msg);
-    for (const [client] of clients) {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify({ type: 'update', id: playerId, x: data.x, y: data.y }));
-      }
+    let data; try { data = JSON.parse(msg); } catch { return; }
+
+    if (data.type === 'input') {
+      broadcastToRoom(roomId, { type: 'input', id: playerId, left: !!data.left, right: !!data.right }, ws);
+      return;
+    }
+    if (data.type === 'round_start') {           // Payload (spawns, seed) passt durch
+      broadcastToRoom(roomId, data);
+      return;
+    }
+    if (data.x !== undefined && data.y !== undefined) {
+      broadcastToRoom(roomId, { type: 'update', id: playerId, x: data.x, y: data.y }, ws);
+      return;
     }
   });
 
   ws.on('close', async () => {
+    const meta = clients.get(ws);
     clients.delete(ws);
-    console.log(`Player ${playerId} disconnected. Active clients: ${clients.size}`);
-    try {
-      const newCount = await redis.hincrby(SERVER_KEY, 'players', -1);
-      console.log(`Players jetzt: ${newCount} @ public:${PUBLIC_PORT}`);
-    } catch (e) {
-      console.error('Redis hincrby -1 failed:', e.message);
+    if (meta) {
+      const roomSet = rooms.get(meta.roomId);
+      if (roomSet) { roomSet.delete(ws); if (roomSet.size === 0) rooms.delete(meta.roomId); }
+      broadcastToRoom(meta.roomId, { type: 'remove', id: meta.id });
     }
+    try { await redis.hincrby(SERVER_KEY, 'players', -1); } catch {}
   });
 });
+
 
 // Clean shutdown
 const shutdown = async () => {
