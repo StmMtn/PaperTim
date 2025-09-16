@@ -240,3 +240,5 @@ func _host_request_next_round() -> void:
 		var payload := _build_round_start_payload()
 		_ws_send(payload)                                   # an alle Clients
 		game.start_round_net(payload.spawns, payload.seed)  # sofort lokal anwenden
+		
+		

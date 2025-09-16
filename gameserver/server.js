@@ -128,7 +128,7 @@ wss.on('connection', async (ws, req) => {
     let data; try { data = JSON.parse(msg); } catch { return; }
 
     if (data.type === 'input') {
-      broadcastToRoom(roomId, { type: 'input', id: playerId, left: !!data.left, right: !!data.right }, ws);
+      broadcastToRoom(roomId, { type: 'input', id: playerId, left: !!data.left, right: !!data.right });
       return;
     }
     if (data.type === 'round_start') {           // Payload (spawns, seed) passt durch
