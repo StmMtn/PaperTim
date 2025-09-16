@@ -1,0 +1,11 @@
+<p>leaderboard works!</p>
+    <h3>Leaderboard</h3>
+    <table>
+      <tr><th>Username</th><th>Trophies</th><th>Games</th></tr>
+      <tr *ngFor="let p of players">
+        <td>{{p.username}}</td>
+        <td>{{p.trophies}}</td>
+        <td>{{p.games_played}}</td>
+      </tr>
+    </table>
+    <button (click)="refresh()">Refresh</button>

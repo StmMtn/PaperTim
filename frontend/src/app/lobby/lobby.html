@@ -25,10 +25,10 @@
         <span *ngIf="server.players >= maxPlayers" class="badge bg-danger ms-2">Voll</span>
       </div>
       <div>
-        <a [href]="'http://localhost:' + server.port"
-           target="_blank"
-           class="btn btn-sm btn-success me-2"
-           [class.disabled]="isFull(server)">
+        <a [href]="'http://localhost:' + server.port + '?token=' + auth.getToken()"
+          target="_blank"
+          class="btn btn-sm btn-success me-2"
+          [class.disabled]="isFull(server)">
           <i class="bi bi-box-arrow-in-right me-1"></i> Beitreten
         </a>
 
