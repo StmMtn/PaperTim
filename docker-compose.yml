@@ -32,7 +32,8 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/papertim
       - JWT_SECRET=change_this_dev_secret
       - MASTER_API_KEY=change_me_devkey
-    ports: ["3000:3000"]
+    expose:
+      - "3000"
     depends_on: [redis, postgres]
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -51,3 +52,15 @@ services:
     container_name: gameserver
     ports: ["8443:8443"]
     depends_on: [redis, masterserver]
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - masterserver
+    networks:
+      - gamenet
+
