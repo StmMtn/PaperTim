@@ -172,6 +172,12 @@ wss.on('connection', async (ws, req) => {
       broadcastToRoom(roomId, data);
       return;
     }
+    if (data.type === 'round_over') {
+      broadcastToRoom(roomId, { type: 'round_over', winner_pid: data.winner_pid, draw: !!data.draw });
+      return;
+    }
+
+
     if (data.x !== undefined && data.y !== undefined) {
       broadcastToRoom(roomId, { type: 'update', id: playerId, x: data.x, y: data.y }, ws);
       return;

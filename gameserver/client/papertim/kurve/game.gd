@@ -13,6 +13,7 @@ signal round_finished(winner_pid: int, draw: bool)
 @export var border_color: Color = Color.DARK_RED
 @export var use_viewport_bounds: bool = false
 @export var arena_margin: int = 40
+@export var host_authoritative: bool = false
 
 @export var head_radius_px: float = 7.0         # dein echter Kopf-Radius
 @export var spawn_extra_margin: float = 60.0    # wie weit weg vom Rand spawnen
@@ -20,6 +21,15 @@ signal round_finished(winner_pid: int, draw: bool)
 var _play_bounds_x: Vector2
 var _play_bounds_y: Vector2
 var name_by_pid: Dictionary = {}  # pid -> String
+var is_authority: bool = false
+
+func set_authority(on: bool) -> void:
+	is_authority = on
+	var walls := $"Arena/Walls" as Area2D
+	if walls:
+		# Singleplayer immer an; im Netz nur auf dem Host an
+		walls.monitoring = (not network_driven) or is_authority
+
 
 # --- Layer-Definitionen (Bits): 1 => 1<<0, 2 => 1<<1
 const LAYER_PLAYER := 1        # Bit 1
@@ -204,52 +214,47 @@ func start_round_net(spawns: Dictionary, seed: int) -> void:
 	$RoundStartTimer.start()
 
 
-func _process(_delta: float) -> void:
+func _physics_process(_delta: float) -> void:
 	var fps := $UI/Control/VBoxContainer.get_node_or_null("FPSCounter")
 	if fps and fps.visible:
 		fps.text = str(Engine.get_frames_per_second())
 
-	# Trail-Kollisionen (eigene Logik)
-	for p in players:
-		if player_collision(players[p][0]):
-			players[p][0].set_active(false)
-			remaining_players -= 1
-			if remaining_players <= 1:
-				round_over()
-
-	#if Input.is_action_just_pressed("ui_cancel"):
-		#get_tree().change_scene_to_file("res://kurve/main_menu.tscn")
-
+	# Nur Host prüft Kollisionen (lokal: weiterhin prüfen)
+	if not network_driven or is_authority:
+		for p in players:
+			if player_collision(players[p][0]):
+				players[p][0].set_active(false)
+				remaining_players -= 1
+				if remaining_players <= 1:
+					round_over()
 
 func round_over() -> void:
-	$RoundOverTimer.start()
-	round_running = false
-	emit_signal("round_state_changed", round_running)
+	var winner_pid := -1
+
+	# Gewinnen / Unentschieden entscheiden, solange die Alive-Flags noch stimmen
 	if remaining_players == 1:
-		var winner_pid := -1
 		for p in players:
 			if players[p][0].is_alive():
 				winner_pid = int(p)
-				players[p][0].set_active(false)
 				players[p][1] += 1
 				var human := _name_or_color_for_pid(p)
 				match players[p][0].player_num:
-					1:
-						$UI/Control/VBoxContainer/LabelBlue.text   = "%s: %s" % [human, players[p][1]]
-					2:
-						$UI/Control/VBoxContainer/LabelOrange.text = "%s: %s" % [human, players[p][1]]
-					3:
-						$UI/Control/VBoxContainer/LabelGreen.text  = "%s: %s" % [human, players[p][1]]
-					4:
-						$UI/Control/VBoxContainer/LabelPurple.text = "%s: %s" % [human, players[p][1]]
+					1: $UI/Control/VBoxContainer/LabelBlue.text   = "%s: %s" % [human, players[p][1]]
+					2: $UI/Control/VBoxContainer/LabelOrange.text = "%s: %s" % [human, players[p][1]]
+					3: $UI/Control/VBoxContainer/LabelGreen.text  = "%s: %s" % [human, players[p][1]]
+					4: $UI/Control/VBoxContainer/LabelPurple.text = "%s: %s" % [human, players[p][1]]
 				$UI/Control/VBoxContainer/LabelRoundOver.text = "%s WINS!" % human
 				break
 		emit_signal("round_finished", winner_pid, false)
-
 	else:
 		$UI/Control/VBoxContainer/LabelRoundOver.text = "IT'S A DRAW!"
 		emit_signal("round_finished", 0, true)
 
+	# erst jetzt einfrieren & Runde schließen
+	freeze_all_players()
+	$RoundOverTimer.start()
+	round_running = false
+	emit_signal("round_state_changed", round_running)
 
 func player_collision(player) -> bool:
 	if not player.is_alive(): return false
@@ -289,18 +294,17 @@ func _on_RoundOverTimer_timeout() -> void:
 	if not network_driven:
 		start_round()  # Lokalmodus darf direkt starten
 
-# --- WICHTIGER Handler: Spieler verlässt die Arena-Fläche
 func _on_Walls_area_exited(area: Area2D) -> void:
+	if network_driven and not is_authority:
+		return
 	if area.is_in_group("Player"):
+		# Schon tot? Dann nix mehr tun.
+		if "is_alive" in area and not area.is_alive():
+			return
 		area.set_active(false)
 		remaining_players -= 1
 		if remaining_players <= 1:
 			round_over()
-
-# Debug optional:
-# func _on_Walls_area_entered(area: Area2D) -> void:
-# 	print("ENTER:", area)
-
 
 func add_player_from_net(pid: int) -> void:
 	var new_player: Area2D = player_packed.instantiate()
@@ -537,3 +541,29 @@ func _refresh_score_labels() -> void:
 		var lbl: Label = map.get(pnode.player_num, null)
 		if lbl:
 			lbl.text = "%s: %s" % [human, score]
+			
+func apply_remote_round_over(winner_pid: int, draw: bool) -> void:
+	freeze_all_players()
+	$RoundOverTimer.start()
+	round_running = false
+	emit_signal("round_state_changed", round_running)
+
+	if not draw and players.has(winner_pid):
+		players[winner_pid][1] += 1
+		var human := _name_or_color_for_pid(winner_pid)
+		match players[winner_pid][0].player_num:
+			1: $UI/Control/VBoxContainer/LabelBlue.text   = "%s: %s" % [human, players[winner_pid][1]]
+			2: $UI/Control/VBoxContainer/LabelOrange.text = "%s: %s" % [human, players[winner_pid][1]]
+			3: $UI/Control/VBoxContainer/LabelGreen.text  = "%s: %s" % [human, players[winner_pid][1]]
+			4: $UI/Control/VBoxContainer/LabelPurple.text = "%s: %s" % [human, players[winner_pid][1]]
+		$UI/Control/VBoxContainer/LabelRoundOver.text = "%s WINS!" % human
+	else:
+		$UI/Control/VBoxContainer/LabelRoundOver.text = "IT'S A DRAW!"
+
+	emit_signal("round_finished", winner_pid, draw)
+
+func freeze_all_players() -> void:
+	for pid in players.keys():
+		var p = players[pid][0]
+		p.set_active(false)
+		p.set_input(false, false) # sicherheitshalber

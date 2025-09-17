@@ -298,7 +298,11 @@ func _process(_dt):
 							for e in data.list:
 								if typeof(e) == TYPE_DICTIONARY and e.has("id") and e.has("name"):
 									game.set_name_for_pid(int(e.id), String(e.name))
-
+				"round_over":
+					if game:
+						if my_id != host_id:
+							game.apply_remote_round_over(int(data.winner_pid), bool(data.draw))
+						# Eingaben/Ready-UI etc. sind durch round_over/apply_remote_round_over ohnehin geblockt
 
 				"update":
 					if use_input_netmode: continue
@@ -327,20 +331,16 @@ func _unhandled_input(ev):
 		if left != last_left or right != last_right:
 			last_left = left
 			last_right = right
-			if my_id != 0 and game:
+			if game and game.round_running and my_id != 0:
 				game.set_input_for_pid(my_id, left, right)
-			_send_input(left, right)
-
+				_send_input(left, right)
 
 func _send_input(left: bool, right: bool) -> void:
+	if not game or not game.round_running:   # <— NEU
+		return
 	if ws.get_ready_state() != WebSocketPeer.STATE_OPEN:
 		return
-	_ws_send({
-		"type": "input",
-		"id": my_id,
-		"left": left,
-		"right": right
-	})
+	_ws_send({ "type": "input", "id": my_id, "left": left, "right": right })
 
 func _ws_send(msg: Dictionary) -> void:
 	if ws.get_ready_state() == WebSocketPeer.STATE_OPEN:
@@ -353,6 +353,8 @@ func _recalc_host() -> void:
 		var ids := known_pids.keys()
 		ids.sort()
 		host_id = int(ids[0])
+	if game:
+		game.set_authority(my_id == host_id)
 
 func _maybe_start_round() -> void:
 	if my_id == host_id and game and not game.round_running and known_pids.size() >= MIN_PLAYERS_TO_START:
@@ -471,13 +473,14 @@ func increase_games() -> void:
 func _on_round_finished(winner_pid: int, draw: bool) -> void:
 	if _reported_this_round: return
 	_reported_this_round = true
+
+	# Host teilt das Ergebnis allen mit
+	if my_id == host_id:
+		_ws_send({ "type": "round_over", "winner_pid": winner_pid, "draw": draw })
+
 	_trophy_delta_pending = 0
 	increase_games()
 	if draw: return
-	# nur wenn ich wirklich mitgespielt habe:
-	if not draw and game and game.players.has(my_id):
-		if winner_pid == my_id:
-			_trophy_delta_pending = 30
-		else:
-			_trophy_delta_pending = -10
-			
+	if game and game.players.has(my_id):
+		if winner_pid == my_id: _trophy_delta_pending = 30
+		else: _trophy_delta_pending = -10
