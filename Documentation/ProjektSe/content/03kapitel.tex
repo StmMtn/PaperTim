@@ -1,0 +1,36 @@
+\chapter{Hardwarekomponenten}
+
+\section{Mikrofonmodule}
+
+Zur Erfassung des Lautstärkepegels wurden drei unterschiedliche Mikrofonmodule in Betracht gezogen. 
+Der erste Sensor ist ein kostengünstiges Modul "GY-MAX4466" (ca.\ 4\,€), das ursprünglich als Klatschsensor konzipiert wurde. 
+Der zweite Sensor ist das \textit{Sound Level Meter V2.0} von DFRobot (ca.\ 40\,€), das über zusätzliche Hardware zur Signalverarbeitung verfügt und den Schalldruckpegel bereits gefiltert und bereinigt im dBA-Format ausgibt.
+Der dritte in Betracht gezogene Sensor ist ein handelsübliches DB-Messgerät (ca.\ 20\,€), das jedoch nicht für die Integration in das Projekt geeignet ist, da es keine digitale Schnittstelle bietet und somit nicht direkt mit dem ESP32 kommunizieren kann.
+Dieser Sensor wird daher zur Überprüfung der Ergebnisse verwendet, ist aber nicht für die direkte Integration in das Projekt vorgesehen.
+
+Da die absolute Einheit (dBA) für die Auswertung im Rahmen eines 3D-Diagramms nicht zwingend erforderlich ist, wurde der Fokus auf die Vergleichbarkeit der analogen Ausgangssignale gelegt. 
+Beide Sensoren wurden gleichzeitig an einem ESP32 betrieben und ihre Ausgangssignale mithilfe des \textit{Serial Plotter} in Echtzeit visualisiert. 
+Dabei zeigte sich, dass die Kurvenverläufe bei normalen Sprachgeräuschen nahezu identisch sind. 
+Lediglich bei impulsartigen Geräuschen mit sehr geringer Distanz (z.\,B.\ Klatschen oder Klopfen) erzeugt das günstigere Mikrofon deutlich stärkere Peaks, während diese durch den DFRobot-Sensor wirksam herausgefiltert werden.
+
+\begin{center}
+\end{center}
+\begin{center}
+\end{center}
+
+Hier sind die Sensorwerte des günstigeren Klatschsensors (grün), sowie die des Teureren Dba sensors (gelb) dargestellt. Die In Blau dargestellte 5v Referenzlinie stellt den Maximalwert da, welcher von den Sensoren zurückgegeben werden kann.
+
+Da die in den Vergleichsdiagrammen dargestellten Abweichungen bei größerem Abstand deutlich abnehmen und im Anwendungsfall als vernachlässigbar eingestuft werden können, wurde entschieden, den günstigeren Sensor zu verwenden. 
+Um mögliche Reststörungen dennoch weiter zu reduzieren, ist geplant, eine mechanische Dämpfung oder Abschirmung am Sensor zu testen.
+
+Insgesamt konnte festgestellt werden, dass der günstigere Sensor trotz fehlender dBA-Ausgabe für die angestrebte Visualisierung ausreichend präzise Ergebnisse liefert und somit für den weiteren Projektverlauf verwendet wird.
+
+\section{ESP32}
+Die ESP-Module bieten im Vergleich zu klassischen Arduinos eine integrierte WLAN-Funktionalität und unterstützen direkt das ESP-NOW-Protokoll. Dadurch entfällt zusätzlicher Hardware- oder Softwareaufwand für die Netzwerkkommunikation.
+In Kombination mit ESP-NOW ergibt sich somit eine kompakte, performante und zuverlässige Lösung.
+
+\section{Umsetzung}
+Nach der Entscheidung für die finalen Hardwarekomponenten wurde dies erfolgreich nach Plan umgesetzt.
+Da jedoch das IOT-eigene Netzwerk nicht bis zum lezten ESP im Raum reichte, wurden mehrere Möglichkeiten getestet (WLAN-Repeater, lokaler Access-Point auf Edge-ESP, ESP-Now Brücke).
+Final wurde sich für einen fünften ESP entschieden, der nur als Edge-Device fungiert (zuvor war das Edge-Device als Sensor genutzt worden) und die Daten der anderen vier ESPs sammelt und an den MQTT-Server sendet.
+Damit waren keine Störgeräusche mehr in den Daten zu finden und die Verbindung war stabil.

@@ -1,0 +1,70 @@
+\chapter{API-Kommunikation}
+\label{cha:api_kommunikation}
+In diesem Kapitel wird die Kommunikation zwischen Frontend und Backend beschrieben, insbesondere die Übertragung von Heatmap-Daten. Es werden verschiedene Ansätze zur Datenübertragung und -kompression vorgestellt, um die Effizienz und Performance der Anwendung zu optimieren.
+\section{Problemstellung}
+Wenn für jede Slider-Position eine API-Abfrage durchgeführt wird:
+\begin{itemize}
+    \item Bei einer Frequenz von 10~Hz (alle 100\,ms ein Datenpaket) ergeben sich 36{,}000 Zeitpunkte pro Sensor und somit 144{,}000 Werte pro Stunde.
+    \item Beispielrechnung: $36{,}000 \times 10 \times 10 = 3{,}6$~Millionen Werte für ein $10\times10$-Array.
+\end{itemize}
+
+\section{Datenbasis}
+\begin{itemize}
+    \item \textbf{Heatmap-Größe:} $10\times10$ Werte (100 Felder pro Heatmap)
+    \item \textbf{Datentyp:} Float16 (2~Byte pro Wert)
+    \item \textbf{Frequenz:} 10~Hz (alle 100\,ms ein Frame)
+    \item \textbf{Beispiel:} 1 Stunde = 3{,}600 Sekunden = 36{,}000 Frames
+\end{itemize}
+
+\noindent\textbf{Speicherbedarf (unkomprimiert):}
+\[
+100 \cdot 2\ \text{Bytes} = 200\ \text{Bytes/Frame}
+\]
+\[
+200 \cdot 36{,}000 = 7{,}200{,}000\ \text{Bytes} \approx 7.2\ \text{MB}
+\]
+
+\section{Optimierungsoptionen}
+\begin{enumerate}
+    \item \textbf{Downsampling (Mittelwert pro Sekunde)} \\
+    3{,}600 Frames/h → $3{,}600 \times 100$ Werte = 0.72\,MB.  
+    Vorteil: geringe Datenmenge, einfaches JSON; Nachteil: Peaks nicht sichtbar.
+    \item \textbf{Textkompression (Gzip/Brotli)} \\
+    Reduktion auf ca. 15–25\,\% → $\approx 1.8$\,MB.
+    \item \textbf{Binärformate (MessagePack, Protobuf, FlatBuffers)} \\
+    30–40\,\% Ersparnis gegenüber JSON → $\approx 5.0$\,MB.
+    \item \textbf{Binär + Kompression} \\
+    Kombination aus beidem → $\approx 1.2$\,MB.
+    \item \textbf{Delta-Encoding (nur Änderungen)} \\
+    Angenommen: jeder 3.~Wert ändert sich → $\approx 3.4$\,MB.
+    \item \textbf{Delta-Encoding + Kompression} \\
+    Weitere Reduktion auf $\approx 1.0$–$1.2$\,MB.
+    \item \textbf{Pre-Exportierte Dateien} \\
+    Backend exportiert pro Stunde eine Datei → $\approx 7.2$\,MB.
+    \item \textbf{Pre-Export + Kompression} \\
+    Speicherbedarf: $\approx 1.2$\,MB/h; sehr performant und cachebar.
+\end{enumerate}
+
+\section{Vergleich der Ansätze}
+
+\begin{center}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{|l|c|p{5cm}|p{5cm}|}
+\hline
+\textbf{Beschreibung} & \textbf{Speicher/h} & \textbf{Vorteile} & \textbf{Nachteile} \\ \hline
+Mittelwert pro Sekunde (Downsampling) & $\approx 0.72$\,MB & Sehr leicht, JSON möglich, wenig Traffic & Daten stark geglättet, Peaks nicht sichtbar \\ \hline
+JSON + Gzip/Brotli & $\approx 1.8$\,MB & Einfach umsetzbar, keine großen Änderungen & Höhere Lesezeit, trotzdem noch Textformat \\ \hline
+Binärformat & $\approx 5.0$\,MB & Schnell zu dekodieren, weniger Overhead & Komplexere Integration im Frontend \\ \hline
+Binär + Kompression & $\approx 1.2$\,MB & Gute Mischung aus Effizienz \& Geschwindigkeit & Backend-Implementierung aufwändiger \\ \hline
+Delta-Encoding & $\approx 3.5$\,MB & Ideal bei geringen Änderungen & Schlecht bei stark variablen Daten \\ \hline
+Delta + Kompression & $1.0$–$1.2$\,MB & Sehr gute Kompression & Schwer zu debuggen, komplex \\ \hline
+Pre-Export (roh) & $\approx 7.2$\,MB & Kein Runtime-Rechenaufwand, einfaches Caching & Hoher Speicherbedarf \\ \hline
+Pre-Export + Kompression & $\approx 1.2$\,MB & Sehr performant, cachebar, ideal für Slider & Dateiverwaltung nötig \\ \hline
+\end{tabular}
+\end{adjustbox}
+\end{center}
+
+\section*{Fazit}
+Aufgrund der hohen Komplexität und der großen Datenmengen ist es sinnvoll, die Heatmap-Arrays in einer separaten Datenbasis zu speichern. 
+Das Frontend erhält die Daten in vorverarbeiteter Form durch Downsampling, um die Übertragungsmenge zu reduzieren und die Darstellungsgeschwindigkeit zu erhöhen. 
+Zusätzlich wird eine Komprimierung der Daten in Betracht gezogen, um den Speicher- und Bandbreitenbedarf weiter zu minimieren, ohne die wesentliche Aussagekraft der Werte zu verlieren.

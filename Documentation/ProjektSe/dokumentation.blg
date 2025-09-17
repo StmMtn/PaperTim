@@ -1,0 +1,59 @@
+This is BibTeX, Version 0.99d
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: dokumentation.aux
+Reallocating 'name_of_file' (item size: 1) to 5 items.
+The style file: agsm.bst
+Reallocating 'name_of_file' (item size: 1) to 10 items.
+Database file #1: ArbeitBib.bib
+Warning--entry type for "oltheten2019micplacement" isn't style-file defined
+--line 65 of file ArbeitBib.bib
+Warning--entry type for "betterstack2025koavsexpress" isn't style-file defined
+--line 85 of file ArbeitBib.bib
+Warning--entry type for "appventurez2025nodejsframework" isn't style-file defined
+--line 103 of file ArbeitBib.bib
+Warning--entry type for "kinsta2023angularvreact" isn't style-file defined
+--line 121 of file ArbeitBib.bib
+Warning--entry type for "nodered2023docs" isn't style-file defined
+--line 139 of file ArbeitBib.bib
+You've used 5 entries,
+            2909 wiz_defined-function locations,
+            668 strings with 5519 characters,
+and the built_in function-call counts, 10288 in all, are:
+= -- 1595
+> -- 120
+< -- 0
++ -- 698
+- -- 35
+* -- 775
+:= -- 2278
+add.period$ -- 10
+call.type$ -- 5
+change.case$ -- 70
+chr.to.int$ -- 5
+cite$ -- 5
+duplicate$ -- 55
+empty$ -- 131
+format.name$ -- 45
+if$ -- 1801
+int.to.chr$ -- 5
+int.to.str$ -- 0
+missing$ -- 0
+newline$ -- 28
+num.names$ -- 50
+pop$ -- 45
+preamble$ -- 1
+purify$ -- 75
+quote$ -- 0
+skip$ -- 46
+stack$ -- 0
+substring$ -- 2138
+swap$ -- 5
+text.length$ -- 70
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 20
+warning$ -- 0
+while$ -- 105
+width$ -- 0
+write$ -- 72
+(There were 5 warnings)

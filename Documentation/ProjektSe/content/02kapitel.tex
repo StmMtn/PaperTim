@@ -1,0 +1,50 @@
+\begin{landscape}
+\chapter{SFMEA-Analyse}
+\section{Analyse}
+\label{cha:sfmea}
+\small
+\begin{longtable}{|p{3.4cm}|p{3.4cm}|p{3.4cm}|p{3.4cm}|c|c|c|c|p{3.4cm}|}
+
+    \hline
+    \textbf{Systemfunktion} & \textbf{Fehlermöglichkeit} & \textbf{Fehlerursache} & \textbf{Fehlerfolge} & \textbf{B} & \textbf{A} & \textbf{E} & \textbf{RPZ} & \textbf{Maßnahmen} \\
+    \hline
+    \endhead
+
+    Dezibel erfassen & Falsche oder keine Messwerte & Mikrofon defekt, Sensor ungeeignet & Ungenaue oder keine Daten & 8 & 6 & 3 & 144 & Robuste Mikros, Kalibrierung, Ersatzsensor bereit \\
+    \hline
+    ESP kommuniziert nicht mit anderen & Keine oder fehlerhafte Datenübertragung & WLAN-Probleme, falsches Protokoll & Daten gehen verloren, keine Heatmap & 7 & 5 & 4 & 140 & Netzwerk prüfen, Fallback, Fehler-Logs \\
+    \hline
+    Daten werden nicht ans Backend gesendet & ESP schickt keine Daten & Stromausfall, Codecrash, Timeout & Datenlücken, unvollständige Analyse & 7 & 5 & 3 & 105 & Watchdog, Logging, häufigere Syncs \\
+    \hline
+    GitHub-Zugang fehlerhaft & Kein Zugriff oder Merge-Konflikte & Rechte falsch, keine Git-Strategie & Team kann nicht arbeiten & 6 & 4 & 2 & 48 & Git-Workflow, Rechte regeln \\
+    \hline
+    Backend speichert keine Daten & Fehlerhafte Speicherung / Absturz & Server voll, Codefehler & Datenverlust, Ausfall & 9 & 4 & 4 & 144 & Monitoring, Logging, Backups, Testlauf \\
+    \hline
+    Daten werden falsch ausgewertet & Heatmap falsch / Werte inkonsistent & Algorithmusfehler, unvollständige Daten & Falsche Rückschlüsse & 6 & 4 & 3 & 72 & Testdaten prüfen, Algo validieren, Visualisierung testen \\
+    \hline
+    ESPs messen nicht synchron & Unterschiedliche Messzeitpunkte & Kein Sync, NTP fehlt & Daten nicht vergleichbar & 7 & 5 & 4 & 140 & NTP-Sync, Zeitstempel ergänzen \\
+    \hline
+
+\end{longtable}
+\end{landscape}
+
+\section{Auswertung}
+
+\begin{itemize}
+    \item \textbf{Dezibel erfassen:}
+    Während der tatsächlichen Arbeit mit den Sensoren/Mikrofonen trat ein solcher Fehler selten auf, dennoch wurde zur Absicherung beim Ausfall der Sensoren eine Discord-Notifikation hinzugefügt. Deshalb ist die RPZ von 144 grundsätzlich zu hoch.
+    \item \textbf{ESP kommuniziert nicht mit anderen:}
+    Auch hierbei hilft die bereits genannte Discord-Notifikation. Zusätzlich wurden mehrere Datenübertragungs-Möglichkeiten implementiert und getestet, wobei sich ESP-Now mit einem zusätzlichen Edge-Device, ohne Sensorfunktion, als die beste Option zeigte. Hierdurch wurde das Risiko bestmöglich minimiert. 
+    \item \textbf{Daten werden nicht ans Backend gesendet:}
+    Wenn Daten nicht am Backend angekommen sind, lag dies meistens an Verbindungsproblemen zwischen den einzelnen Komponenten. Stromausfälle oder Codecrashs waren hierbei quasi nie die Ursache.
+    \item \textbf{GitHub-Zugang fehlerhaft:}
+    Mit dem Github-Zugang entstanden keine Probleme, jedoch kam es gelegentlich zu Merge-Konflikten, sowie zu kleineren Problemen bei der Zusammenführen der anfangs getrennten Repositories. Daher ist die klein ausfallende RPZ gerechtfertigt.
+    \item \textbf{Backend speichert keine Daten:}
+    Die hoch angesetzte RPZ wurde durch die Serverprobleme mit dem "Hänisch"-Server und die allgemeine Datenspeicherstruktur des Projekts bestätigt. 
+    \item \textbf{Daten werden falsch ausgewertet:}
+    Durch die anfängliche Annahme, dass es vorgefertigte Algorithmen/Bibliotheken für unseren Usecase gäbe, wurde die RPZ zu niedrig angesetzt. Da es diese nicht gab, musste der Algorithmus selbst entwickelt werden, was zu einer nicht erwarteten Komplexität führte. Daher ist die RPZ bei mindestens 140 anzusetzen.
+    \item \textbf{ESPs messen nicht synchron:}
+    Durch das gebündelte Senden der Daten über das Edge-Device und das vereinheitlichen der Daten innerhalb einer Sekunde, entfällt das zwingend genaue Synchronisieren der Messdaten. 
+    \item \textbf{Nicht beachtete Störquellen:}
+    Ein unerwatetes Problem stellen Störsignale dar, etwa durch das gleichzeitige Senden des Edge-Devices während eigener Sensoraufnahmen, oder durch "laute"  Netzteile anderer Gruppen. Dieses Problem wurde erst spät erkannt und hat sehr viel Zeit in Anspruch genommen, weshalb eine RPZ von 140 angebracht wäre. 
+\end{itemize}
