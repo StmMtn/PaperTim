@@ -7,11 +7,14 @@ var players := {}
 var http: HTTPRequest
 var ws_url := ""
 var auth_token := ""
+var act_name
 var me := {}  # user info
 
 var dev_offline := false
 var _reported_this_round := false  
 var _trophy_delta_pending := 0
+var name_by_pid: Dictionary = {}
+
 
 @onready var reconnect_timer := Timer.new()
 
@@ -54,6 +57,15 @@ func _ready():
 				if kv.size() == 2 and kv[0] == "token":
 					auth_token = kv[1]
 					print("Auth token aus URL: %s" % auth_token)
+	# NAME aus URL-Query ziehen (nur im Browser verfügbar)
+# NAME aus URL-Query
+	if Engine.has_singleton("JavaScriptBridge"):
+		var nm : String = str(JavaScriptBridge.eval(
+			"decodeURIComponent(new URLSearchParams(window.location.search).get('name') || '')"
+		))
+		if nm is String:
+			act_name = nm
+
 
 	var base_url := ""
 	if Engine.has_singleton("JavaScriptBridge"):
@@ -192,6 +204,10 @@ func _process(_dt):
 			match data.type:
 				"init":
 					my_id = int(data.id)
+					if act_name is String and act_name != "" and game:
+						game.set_name_for_pid(my_id, String(act_name))
+					if act_name is String and act_name != "":
+						_ws_send({ "type": "name", "name": String(act_name) })
 					known_pids[my_id] = true
 					ready_by_pid[my_id] = false
 					game.add_player_from_net(my_id)
@@ -257,6 +273,22 @@ func _process(_dt):
 						game.add_player_from_net(pid)
 						_recalc_host()
 					game.set_input_for_pid(pid, data.left, data.right)
+				
+				"name":
+					if game and data.has("id") and data.has("name"):
+						game.set_name_for_pid(int(data.id), String(data.name))
+						
+				"names":
+					if game:
+						if data.has("names"):
+							for k in data.names.keys():
+								game.set_name_for_pid(int(k), String(data.names[k]))
+						elif data.has("list"):
+							for e in data.list:
+								if typeof(e) == TYPE_DICTIONARY and e.has("id") and e.has("name"):
+									game.set_name_for_pid(int(e.id), String(e.name))
+
+
 				"update":
 					if use_input_netmode: continue
 					if data.id == my_id: continue

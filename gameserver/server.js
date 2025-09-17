@@ -116,22 +116,22 @@ wss.on('connection', async (ws, req) => {
 
   // Roster für neuen Client
   const existingIds = [];
-  const existingNames = []; // [{id, name}]
+  // const existingNames = []; // [{id, name}]
   const readyIds = [];
+  const names = {}; 
   for (const sock of set) {
     const meta = clients.get(sock);
-    if (meta) {
-        existingIds.push(meta.id);
-        readyIds.push(...(meta.ready ? [meta.id] : []));
-        existingNames.push({ id: meta.id, name: meta.name || '' });
-      }
-    }
+    if (!meta) continue;
+    existingIds.push(meta.id);
+    if (meta.ready) readyIds.push(meta.id);
+    names[meta.id] = meta.name || '';
+  }
 
   // init + roster nur an neuen Client
   ws.send(JSON.stringify({ type: 'init', id: playerId }));
   ws.send(JSON.stringify({ type: 'roster', ids: existingIds }));
   ws.send(JSON.stringify({ type: 'ready_state', ids: readyIds }));
-  ws.send(JSON.stringify({ type: 'names', list: existingNames }));
+  ws.send(JSON.stringify({ type: 'names', names}));
 
   // registrieren & allen anderen "join"
   clients.set(ws, { id: playerId, roomId, ready: false, name: playerName});
@@ -149,7 +149,20 @@ wss.on('connection', async (ws, req) => {
       broadcastToRoom(roomId, { type: 'ready', id: playerId, ready: !!data.ready }, ws);
       return;
     }
+  
+  if (data.type === 'name') {
+    const meta = clients.get(ws);
+    if (meta) meta.name = String(data.name || '');
+    broadcastToRoom(roomId, { type: 'name', id: playerId, name: meta?.name || '' }, ws);
+    return;
+  }
 
+  if (data.type === 'name') {
+    const meta = clients.get(ws);
+    if (meta) meta.name = String(data.name || '');
+    broadcastToRoom(roomId, { type: 'name', id: playerId, name: meta?.name || '' }, ws);
+    return;
+  }
     if (data.type === 'input') {
       broadcastToRoom(roomId, { type: 'input', id: playerId, left: !!data.left, right: !!data.right });
       return;

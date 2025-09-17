@@ -40,6 +40,11 @@ var forward: Vector2 = Vector2.UP
 var drawing_line: bool = true
 var trail: Line2D
 
+var display_name: String = ""
+var custom_color: Color = Color(0, 0, 0, 0) # wenn a>0, überschreibt Farb-Mapping
+var name_label: Label
+
+
 # NEU: Aktiv-Flag (steuert auch _physics_process)
 var active: bool = false
 
@@ -48,6 +53,29 @@ func _ready():
 	add_to_group("Player") 
 	$Arrow.modulate = get_player_color()
 	set_physics_process(true) # wir laufen grundsätzlich in Physics
+
+func set_display_name(n: String) -> void:
+	display_name = n
+	_ensure_name_label()
+	name_label.text = n
+
+func set_player_color(c: Color) -> void:
+	custom_color = c
+	$Arrow.modulate = get_player_color()
+	if trail:
+		trail.default_color = get_player_color()
+
+func _ensure_name_label() -> void:
+	if name_label: return
+	name_label = Label.new()
+	name_label.name = "NameLabel"
+	name_label.text = display_name
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	name_label.position = Vector2(0, -18)          # leicht über dem Kopf
+	name_label.modulate = Color(1, 1, 1, 0.9)
+	name_label.add_theme_font_size_override("font_size", 12)
+	add_child(name_label)
 
 func start():
 	# Startwerte je Runde
@@ -61,6 +89,7 @@ func start():
 	use_rng = false
 	_reset_gap_schedule()
 	add_new_trail()
+	$Arrow.modulate = get_player_color()
 	set_active(false)
 
 # NEU: sauber aktivieren/deaktivieren
@@ -130,6 +159,8 @@ func add_new_point():
 	trail.points = pts
 
 func get_player_color():
+	if custom_color.a > 0.0:
+		return custom_color
 	if player_num == 1: return Color.DEEP_SKY_BLUE
 	elif player_num == 2: return Color.CORAL
 	elif player_num == 3: return Color.GREEN_YELLOW
@@ -149,6 +180,7 @@ func start_with_angle(angle: float, network_mode: bool, seed: int) -> void:
 		rng.seed = seed
 	_reset_gap_schedule()
 	add_new_trail()
+	$Arrow.modulate = get_player_color()
 	set_active(false)
 	
 func _reset_gap_schedule() -> void:
