@@ -14,7 +14,14 @@ export class Leaderboard implements OnInit{
   constructor(private http: HttpClient) {}
   ngOnInit() { this.refresh(); }
   refresh() {
+    this.loading = true;
     this.http.get<any[]>('http://localhost:3000/leaderboard')
       .subscribe(p => this.players = p);
+    this.lastUpdated = new Date();
+    this.loading = false;
   }
+lastUpdated?: Date;
+loading = false;
 }
+
+

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Service } from '../service';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../auth.service';
+import { ThemeService } from '../theme';
 
 @Component({
   imports: [CommonModule],
@@ -10,12 +11,13 @@ import { AuthService } from '../auth.service';
   standalone: true,
 })
 export class Lobby implements OnInit {
+
   servers: any[] = [];
   startingServers: any[] = [];
   devServerPort = "8443";
   maxPlayers = 4;
 
-  constructor(private gs: Service, public auth: AuthService) {}
+  constructor(private gs: Service, public auth: AuthService,public theme: ThemeService) {}
 
   ngOnInit() {
     this.refresh();

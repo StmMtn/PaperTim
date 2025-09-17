@@ -1,4 +1,16 @@
 <router-outlet></router-outlet>
-<app-auth></app-auth>
-<app-lobby></app-lobby>
-<app-leaderboard></app-leaderboard>
+<!-- z.B. home.component.html -->
+<div class="container my-4">
+  <!-- LOBBY (dein vorhandenes Template) -->
+  <app-lobby></app-lobby>
+
+  <!-- AUTH + LEADERBOARD nebeneinander -->
+  <div class="row g-4 mt-2">
+    <div class="col-lg-6">
+      <app-auth></app-auth>
+    </div>
+    <div class="col-lg-6">
+      <app-leaderboard></app-leaderboard>
+    </div>
+  </div>
+</div>
