@@ -107,7 +107,7 @@ function getRoomFromReq(req) {
 wss.on('connection', async (ws, req) => {
   if (clients.size >= 4) { ws.close(1000, 'Max players reached'); return; }
   
-  reportWinner(1); // TESTING
+  // reportWinner(1); // TESTING
 
   const playerId = nextId++;
   const roomId = getRoomFromReq(req);
@@ -169,7 +169,7 @@ wss.on('connection', async (ws, req) => {
   });
 });
 
-async function reportWinner(winnerId) {
+/*async function reportWinner(winnerId) {
   try {
     await fetch('http://masterserver:3000/internal/report', {
       method: 'POST',
@@ -179,7 +179,7 @@ async function reportWinner(winnerId) {
   } catch (err) {
     console.error('Report failed:', err.message);
   }
-}
+} */
 
 // Clean shutdown
 const shutdown = async () => {

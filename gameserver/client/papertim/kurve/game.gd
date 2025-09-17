@@ -1,6 +1,7 @@
 extends Node2D
 class_name GameRoot
 signal round_state_changed(running: bool)
+signal round_finished(winner_pid: int, draw: bool)
 
 @export var player_packed: PackedScene
 @export var spawn_bounds_x: Vector2 = Vector2.ZERO
@@ -222,11 +223,12 @@ func round_over() -> void:
 	round_running = false
 	emit_signal("round_state_changed", round_running)
 	if remaining_players == 1:
+		var winner_pid := -1
 		for p in players:
 			if players[p][0].is_alive():
+				winner_pid = int(p)
 				players[p][0].set_active(false)
 				players[p][1] += 1
-
 				match players[p][0].player_num:
 					1:
 						$UI/Control/VBoxContainer/LabelBlue.text   = "BLUE: %s"   % players[p][1]
@@ -240,10 +242,12 @@ func round_over() -> void:
 					4:
 						$UI/Control/VBoxContainer/LabelPurple.text = "PURPLE: %s" % players[p][1]
 						$UI/Control/VBoxContainer/LabelRoundOver.text = "PURPLE WINS!"
-				return
+				break
+		emit_signal("round_finished", winner_pid, false)
 
 	else:
 		$UI/Control/VBoxContainer/LabelRoundOver.text = "IT'S A DRAW!"
+		emit_signal("round_finished", 0, true)
 
 
 func player_collision(player) -> bool:

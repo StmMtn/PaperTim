@@ -9,6 +9,8 @@ var auth_token := ""
 var me := {}  # user info
 
 var dev_offline := false
+var _reported_this_round := false  
+var _trophy_delta_pending := 0
 
 @onready var reconnect_timer := Timer.new()
 
@@ -82,17 +84,6 @@ func _on_config_response(result: int, code: int, _h: PackedStringArray, body: Pa
 		_connect_with_fallback()
 		return
 
-	# Testbuttons
-	var btn_trophy = Button.new()
-	btn_trophy.text = "Add Trophy"
-	btn_trophy.pressed.connect(func(): increase_trophy())
-	add_child(btn_trophy)
-
-	var btn_games = Button.new()
-	btn_games.text = "Add Game"
-	btn_games.pressed.connect(func(): increase_games())
-	add_child(btn_games)
-
 func _on_config_response_fallback(body_text: String) -> void:
 	# Fallback falls config nicht lief
 	ws_url = "ws://localhost:8443"
@@ -100,17 +91,17 @@ func _on_config_response_fallback(body_text: String) -> void:
 
 func _on_request_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray) -> void:
 	var tag = http.get_meta("last_tag", "")
-	var text = body.get_string_from_utf8()
+	var text := body.get_string_from_utf8()
+
 	if response_code >= 200 and response_code < 300:
-		var jr = JSON.parse_string(text)
-		if jr.error != OK:
-			push_error("JSON parse error: %s" % str(jr.error))
+		var parsed = JSON.parse_string(text)   # <— direktes Variant
+		if parsed == null:
+			push_error("JSON parse failed (tag=%s): %s" % [tag, text])
 			return
-		var parsed = jr.result
- 
+
 		match tag:
 			"config":
-				if parsed == null or not parsed.has("ws_url"):
+				if typeof(parsed) != TYPE_DICTIONARY or not parsed.has("ws_url"):
 					push_error("Config-JSON ungültig: %s" % text)
 					_connect_with_fallback()
 					return
@@ -118,20 +109,22 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 				_connect_ws()
 
 			"login", "register":
-				auth_token = parsed.get("token", "")
+				auth_token = String(parsed.get("token", ""))
 				me = parsed.get("user", {})
 				print("Logged in: %s" % str(me))
 
-			"inc_trophy":
-				print("Trophies now: %s" % str(parsed))
-
 			"inc_games":
 				print("Games now: %s" % str(parsed))
-
+				if _trophy_delta_pending != 0:
+					_post("http://localhost:3000/me/trophies",
+						  {"amount": _trophy_delta_pending},
+						  "trophy")
+					_trophy_delta_pending = 0
+			"trophy", "inc_trophy", "dec_trophy":
+				print("Trophies now: %s" % str(parsed))
 			_:
 				print("HTTP %s -> %s" % [tag, text])
 	else:
-		# Fehlerstatus
 		push_error("Request failed (tag=%s, code=%s): %s" % [tag, response_code, text])
 
 func _connect_with_fallback():
@@ -147,7 +140,11 @@ func _connect_ws():
 			add_child(game)
 			game.round_state_changed.connect(func(_running: bool) -> void:
 				_update_ready_ui()
+				if _running:
+					_reported_this_round = false   # ← Reset beim echten Start
 			)
+			if not game.round_finished.is_connected(_on_round_finished):
+				game.round_finished.connect(_on_round_finished)  # ← HIER ebenfalls
 			_wire_ready_button()   # <— UI-Button verbinden (optional)
 			_update_ready_ui()     # <— erste Anzeige
 		my_id = 1
@@ -165,6 +162,8 @@ func _connect_ws():
 		game.round_state_changed.connect(func(_running: bool) -> void:
 			_update_ready_ui()
 		)
+		if not game.round_finished.is_connected(_on_round_finished):
+			game.round_finished.connect(_on_round_finished)  # ← HIER
 		_wire_ready_button()   # <— UI-Button verbinden (optional)
 		_update_ready_ui()     # <— erste Anzeige
 
@@ -239,6 +238,7 @@ func _process(_dt):
 					if game.round_running and game.players.size() <= 1:
 						game.round_over()
 				"round_start":
+					_reported_this_round = false
 					if game and data.has("arena"): # erst Arena vom Host setzen (damit alle gleich sind)
 						game.set_arena_from_host(data.arena)
 					# nach Start alle wieder un-ready setzen (für nächste Runde)
@@ -320,6 +320,7 @@ func _maybe_start_round() -> void:
 
 
 func _build_round_start_payload() -> Dictionary:
+	_reported_this_round = false
 	var spawns := {}
 	#for pid in known_pids.keys():
 		#spawns[pid] = {
@@ -410,14 +411,22 @@ func register_user(username: String, password: String) -> void:
 func login_user(username: String, password: String) -> void:
 	_post("http://localhost:3000/auth/login", {"username":username,"password":password}, "login")
 
-func increase_trophy() -> void:
-	if auth_token == "":
-		push_error("Nicht eingeloggt")
-		return
-	_post("http://localhost:3000/me/trophies", {"amount":1}, "inc_trophy")
 
 func increase_games() -> void:
 	if auth_token == "":
 		push_error("Nicht eingeloggt")
 		return
 	_post("http://localhost:3000/me/games", {"amount":1}, "inc_games")
+
+func _on_round_finished(winner_pid: int, draw: bool) -> void:
+	if _reported_this_round: return
+	_reported_this_round = true
+	_trophy_delta_pending = 0
+	increase_games()
+	if draw: return
+	# nur wenn ich wirklich mitgespielt habe:
+	if not draw and game and game.players.has(my_id):
+		if winner_pid == my_id:
+			_trophy_delta_pending = 10
+		else:
+			_trophy_delta_pending = -10
