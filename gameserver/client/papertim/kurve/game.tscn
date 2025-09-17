@@ -110,5 +110,5 @@ shape = SubResource("4")
 
 [connection signal="timeout" from="RoundStartTimer" to="." method="_on_RoundStartTimer_timeout"]
 [connection signal="timeout" from="RoundOverTimer" to="." method="_on_RoundOverTimer_timeout"]
-[connection signal="area_exited" from="Arena/Walls" to="." method="_on_Walls_area_exited"]
 [connection signal="area_exited" from="Arena/Walls" to="." method="_on_walls_area_exited"]
+[connection signal="area_exited" from="Arena/Walls" to="." method="_on_Walls_area_exited"]

@@ -197,6 +197,7 @@ func _process(_dt):
 					game.add_player_from_net(my_id)
 					_recalc_host()
 					_update_ready_ui()
+
 				"roster":
 					for id in data.ids:
 						var pid := int(id)
@@ -420,24 +421,3 @@ func increase_games() -> void:
 		push_error("Nicht eingeloggt")
 		return
 	_post("http://localhost:3000/me/games", {"amount":1}, "inc_games")
-
-func _process(_delta):
-	if ws.get_ready_state() == WebSocketPeer.STATE_OPEN:
-		while ws.get_available_packet_count() > 0:
-			var msg = ws.get_packet().get_string_from_utf8()
-			var data = JSON.parse_string(msg).result
-			match data.type:
-				"init":
-					my_id = data.id
-					# lokalen Spieler jetzt erzeugen
-					if my_player == null:
-						my_player = preload("res://character_body_2d.tscn").instantiate()
-						my_player.is_local_player = true
-						add_child(my_player)
-
-				"update":
-					if not players.has(data.id):
-						var p = preload("res://character_body_2d.tscn").instantiate()
-						add_child(p)
-						players[data.id] = p
-					players[data.id].global_position = Vector2(data.x, data.y)
