@@ -12,7 +12,7 @@ export class Lobby implements OnInit {
   servers: any[] = [];
   startingServers: any[] = [];
   devServerPort = "8443";
-  maxPlayers = 10;
+  maxPlayers = 4;
 
   constructor(private gs: Service) {}
 

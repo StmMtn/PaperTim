@@ -102,7 +102,7 @@ function getRoomFromReq(req) {
 }
 
 wss.on('connection', async (ws, req) => {
-  if (clients.size >= 10) { ws.close(1000, 'Max players reached'); return; }
+  if (clients.size >= 4) { ws.close(1000, 'Max players reached'); return; }
 
   const playerId = nextId++;
   const roomId = getRoomFromReq(req);
@@ -120,11 +120,12 @@ wss.on('connection', async (ws, req) => {
   // init + roster nur an neuen Client
   ws.send(JSON.stringify({ type: 'init', id: playerId }));
   ws.send(JSON.stringify({ type: 'roster', ids: existingIds }));
-    ws.send(JSON.stringify({ type: 'ready_state', ids: readyIds }));
+  ws.send(JSON.stringify({ type: 'ready_state', ids: readyIds }));
 
   // registrieren & allen anderen "join"
   clients.set(ws, { id: playerId, roomId, ready: false });
   set.add(ws);
+  try { await redis.hincrby(SERVER_KEY, 'players', +1); } catch {}
   broadcastToRoom(roomId, { type: 'join', id: playerId }, ws);
 
   ws.on('message', (msg) => {
