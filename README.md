@@ -1,77 +1,95 @@
-# Projektübersicht
+# PaperTim
 
-Dieses Verteilte-Systeme-Projekt soll über Godot ein Spiel hervorbringen welches über Websockets direkt im Browser zusammen gespielt werden kann.
-
-## Schritte zur Nutzung
-
-1. **Godot-Spiel exportieren**
-
-   - Bearbeite/Erstelle das Spiel in Godot (`client/papertim`).
-   - Exportiere es als HTML5-Projekt.
-   - Im Start-Node (z.B. `game_paper.gd`) wird das Spiel mit dem Webserver verbunden.
-
-2. **Client-Template**
-
-   - Lade die nötigen HTML/JS-Dateien (Godot Export Template) von der offiziellen Godot-Webseite herunter:  
-     https://godotengine.org/download/web
-   - Kopiere das komplette HTML5-Export-Template in den Ordner `client/Game`.
-   - Ersetze oder ergänze die Dateien mit deinem exportierten Spiel.
-
-3. **HTTPS-Zertifikate mit mkcert erstellen**
-
-   - Lade mkcert für Windows herunter, z.B. von:  
-     https://github.com/FiloSottile/mkcert/releases  
-     (Version `mkcert-v1.4.4-windows-amd64.exe`)
-   
-   - Öffne die Eingabeaufforderung (CMD) und navigiere zum Ordner, in dem die mkcert-Exe liegt (z.B. `Downloads`):
-     ```
-     cd C:\Users\<Name>\Downloads
-     ```
-   - Installiere die lokale Zertifizierungsstelle (CA), falls noch nicht geschehen:
-     ```
-     .\mkcert-v1.4.4-windows-amd64.exe -install
-     ```
-   - Erstelle die Zertifikate für `localhost`:
-     ```
-     .\mkcert-v1.4.4-windows-amd64.exe localhost
-     ```
-     Dadurch werden zwei Dateien erstellt:
-     - `localhost.pem`
-     - `localhost-key.pem`
-
-   - Kopiere diese beiden Dateien in den `server`-Ordner des Projekts.
-
-4. **Server starten**
-
-   - Im Projekt-Root oder im `server`-Ordner:  
-     ```
-     node server.js
-     ```
-   - Der Server läuft dann unter:  
-     ```
-     https://localhost:8443/game.html
-     ```
-     (Alternativ einfach `https://localhost:8443/` wenn der Server so konfiguriert ist, dass er auf `/` auf `game.html` weiterleitet)
+Ein Projekt für das Modul *Verteilte Systeme*: Ein browserbasiertes Mehrspieler-Spiel (inspiriert von „Achtung, Kurve!“), umgesetzt mit Godot, Node.js und WebSockets.
 
 ---
 
-## Hinweise
+## Inhaltsverzeichnis
 
-- `localhost.pem` und `localhost-key.pem` sind private Zertifikate für die lokale Entwicklung und sollten **nicht** ins Git-Repository gepusht werden. Daher in `.gitignore` eintragen.
-- Für mehr als 10 WebSocket-Clients ist der Server nicht ausgelegt.
-- Das HTTPS ist nötig, damit der Browser WebGL und WebSocket-Verbindungen im sicheren Kontext erlaubt.
+- [Projektbeschreibung](#projektbeschreibung)  
+- [Features](#features)  
+- [Architektur](#architektur)  
+- [Technologien](#technologien)  
+- [Installation & Setup](#installation--setup)  
+- [Benutzung](#benutzung)  
+- [Entwicklungsrichtlinien](#entwicklungsrichtlinien)   
 
-## Ablauf des Projekts:
-- Masterserver
-    - wählt einen freien Host-Port (z. B. 43943).
-    - startet den Container gameserver:latest mit Port-Mapping Host:43943 → Container:8443 und gibt PUBLIC_PORT=43943 per ENV mit.
+---
 
-- Gameserver (im Container)
-  - lauscht immer auf 8443 (interner Container-Port).
-  - liefert die Godot-Buildfiles und /config.
-  - /config baut die WebSocket-URL aus dem Host-Header (z. B. ws://localhost:43943) – damit ist der dyn. Port automatisch richtig.
-  - registriert sich in Redis unter server:43943 und hält die players-Zahl aktuell.
+## Projektbeschreibung
 
-- Godot (Web)
-  - lädt per HTTPRequest absolute URL window.location.origin + "/config".
-  - bekommt ws_url zurück (z. B. ws://localhost:43943) und verbindet sich darüber mit dem WS-Server.
+PaperTim ermöglicht es, das klassische Spielprinzip von „Achtung, Kurve!“ direkt im Browser mit mehreren Spielern zu erleben.  
+Spieler verbinden sich über WebSockets mit einem Game-Server, steuern ihre „Kurve“ in Echtzeit und kämpfen um den letzten Überlebenden. Das Spiel basiert auf einer verteilten Systemarchitektur mit Master- und Game-Servern, persistenten Benutzerdaten und best möglich synchronisiertem Spielablauf.
+
+---
+
+## Features
+
+- Mehrspieler-Gameplay über WebSockets  
+- Lobby-System mit Player Tracking und Host-Regel (Master-Client)  
+- Ready-Mechanismus vor dem Spielstart  
+- Nutzerauthentifizierung und Sicherung der Datenintegrität  
+- Dynamisches Ausliefern der Godot-HTML5 Export-Builds  
+- HTTP(s) Zugriff + Konfigurations-Endpoint `/config` für dynamische WebSocket-URLs  
+
+---
+
+## Architektur
+![Architekturübersicht](https://raw.githubusercontent.com/StmMtn/PaperTim/main/Documentation/ProjektSe/images/content.png)
+
+
+- **Master-Server**: Verwaltung der aktiven Game-Server‐Instanzen, Lobby-Metadaten, Spielerzahlen  
+- **Game-Server**: Hostet die Godot HTML5 Builds, liefert Konfigurationsantworten, stellt WebSocket Verbindungen her  
+- **Redis**: Speichert aktuelle Spielerzahlen und Lobbystatus für schnelle Zugriffe  
+- **Client (Godot HTML5)**: Lädt die Spielvarianten, verbindet via WebSocket, sendet Eingaben (links/rechts), empfängt Update-Events  
+
+---
+
+## Technologien
+
+| Komponente         | Technologie                         |
+|--------------------|-------------------------------------|
+| Spiel              | Godot (HTML5 Export)                |
+| Backend / APIs     | Node.js, Express.js                 |
+| Datenbank / Cache  | Redis, ggf. PostgreSQL / andere     |
+| Frontend           | Angular & WebSocket Client          |
+| Authentifizierung  | Token / JWT, Passwort Hashing       |
+
+---
+
+## Installation & Setup
+
+1. Repository clonen  
+   ```bash
+   git clone https://github.com/StmMtn/PaperTim.git
+   cd PaperTim
+   ```
+
+2. Server starten 
+   ```bash
+   docker compose up --build -d
+   ```
+   -> für hochverfügbaren Masterserver Flag: --scale masterserver=3 (oder mehr)
+   
+   Danach sollte die Lobby erreichbar sein unter: `https://localhost:8081/`
+---
+
+## Benutzung
+
+- Benutzer öffnen ihre Browser (idealerweise moderner Browser mit HTTPS Unterstützung)  
+- Nutzer verbinden sich nach Anmeldung / Lobbybeitritt via WebSocket  
+- Sobald alle Spieler „ready“ sind, beginnt das Spiel  
+- Steuerung erfolgt per Tastatur: Links / Rechts  
+- Nach jedem Durchgang werden Ergebnisse / Trophäen zurückgemeldet  
+
+---
+
+## Entwicklungsrichtlinien
+
+- **Codeorganisation**: Backend (Master + Game-Server) getrennt halten, Client (Godot) klar separiert  
+- **Validierung**: Authentifizierung und Datenintegrität prüfen, insbesondere beim Lobbybeitritt und Ergebnisermittlung  
+- **Synchronisation**: Host / Master-Client Ansatz nutzen, um divergierende Simulationen zu vermeiden  
+
+---
+
+
