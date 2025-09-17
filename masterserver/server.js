@@ -4,14 +4,19 @@ import Redis from 'ioredis';
 import Docker from 'dockerode';
 import getPort from 'get-port';
 import cors from 'cors';
+import authRoutes from './auth.js';
+import statsRoutes from './stats.js';
 
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 const app = express();
 
 const redis = new Redis({ host: 'redis', port: 6379 });
 
-app.use(cors({ origin: 'http://localhost:8081', credentials: true }));
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+
+app.use('/auth', authRoutes);
+app.use('/', statsRoutes);
 
 const DOCKER_NETWORK = process.env.DOCKER_NETWORK || 'gamenet';
 

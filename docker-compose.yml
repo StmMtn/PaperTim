@@ -11,17 +11,32 @@ services:
     networks: [gamenet]
     ports: ["6379:6379"]
 
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=papertim
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports: ["5432:5432"]
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+      - ./masterserver/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks: [gamenet]
+
   masterserver:
     build: ./masterserver
     networks: [gamenet]
     environment:
       - DOCKER_NETWORK=gamenet
-      - COMPOSE_PROJECT_NAME=papertim   # <-- wichtig für Labels
+      - COMPOSE_PROJECT_NAME=papertim
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/papertim
+      - JWT_SECRET=change_this_dev_secret
+      - MASTER_API_KEY=change_me_devkey
     ports: ["3000:3000"]
-    depends_on: [redis]
+    depends_on: [redis, postgres]
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-
+      
   frontendlobby:
     build: { context: ./Frontend }
     networks: [gamenet]
@@ -35,4 +50,4 @@ services:
     networks: [gamenet]
     container_name: gameserver
     ports: ["8443:8443"]
-    depends_on: [redis]
+    depends_on: [redis, masterserver]

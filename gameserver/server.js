@@ -1,8 +1,12 @@
-// gameserver/server.js
-const express = require('express');
-const WebSocket = require('ws');
-const path = require('path');
-const Redis = require('ioredis');
+import express from 'express';
+import WebSocket, { WebSocketServer } from 'ws';
+import path from 'path';
+import Redis from 'ioredis';
+import { fileURLToPath } from 'url';
+import { report } from 'process';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -64,8 +68,7 @@ const server = app.listen(INTERNAL_PORT, async () => {
 });
 
 // WebSocket an denselben HTTP-Server hängen
-// WebSocket an denselben HTTP-Server hängen
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocketServer({ server });
 let nextId = 1;
 
 // globaler Überblick (für Redis-Zähler etc.)
@@ -103,6 +106,8 @@ function getRoomFromReq(req) {
 
 wss.on('connection', async (ws, req) => {
   if (clients.size >= 4) { ws.close(1000, 'Max players reached'); return; }
+  
+  reportWinner(1); // TESTING
 
   const playerId = nextId++;
   const roomId = getRoomFromReq(req);
@@ -164,6 +169,17 @@ wss.on('connection', async (ws, req) => {
   });
 });
 
+async function reportWinner(winnerId) {
+  try {
+    await fetch('http://masterserver:3000/internal/report', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'x-api-key': process.env.MASTER_API_KEY },
+      body: JSON.stringify({ user_id: winnerId, trophies: 1, games: 1 })
+    });
+  } catch (err) {
+    console.error('Report failed:', err.message);
+  }
+}
 
 // Clean shutdown
 const shutdown = async () => {
