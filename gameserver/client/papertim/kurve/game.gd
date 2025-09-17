@@ -8,15 +8,12 @@ signal round_finished(winner_pid: int, draw: bool)
 @export var spawn_bounds_x: Vector2 = Vector2.ZERO
 @export var spawn_bounds_y: Vector2 = Vector2.ZERO
 @export var network_driven: bool = false
-
 @export var border_thickness: float = 6.0
 @export var border_color: Color = Color.DARK_RED
 @export var use_viewport_bounds: bool = false
 @export var arena_margin: int = 40
-@export var host_authoritative: bool = false
-
-@export var head_radius_px: float = 7.0         # dein echter Kopf-Radius
-@export var spawn_extra_margin: float = 60.0    # wie weit weg vom Rand spawnen
+@export var head_radius_px: float = 7.0 		# Kopf Radius
+@export var spawn_extra_margin: float = 60.0	# wie weit weg vom Rand spawnen
 
 var _play_bounds_x: Vector2
 var _play_bounds_y: Vector2
@@ -68,6 +65,15 @@ func _ready():
 
 	if not network_driven:
 		call_deferred("start_round")
+	
+	var rst := $RoundStartTimer
+	if rst and not rst.is_connected("timeout", Callable(self, "_on_RoundStartTimer_timeout")):
+		rst.timeout.connect(_on_RoundStartTimer_timeout)
+
+	var rot := $RoundOverTimer
+	if rot and not rot.is_connected("timeout", Callable(self, "_on_RoundOverTimer_timeout")):
+		rot.timeout.connect(_on_RoundOverTimer_timeout)
+
 
 
 func _update_bounds_from_viewport() -> void:
@@ -157,13 +163,6 @@ func _configure_player(p: Area2D) -> void:
 	# Gruppe, falls nicht schon im Player-Skript:
 	if not p.is_in_group("Player"):
 		p.add_to_group("Player")
-
-
-func _notification(what):
-	if what == NOTIFICATION_WM_SIZE_CHANGED and use_viewport_bounds:
-		_update_bounds_from_viewport()
-		_build_arena_from_bounds()
-
 
 func start_round() -> void:
 	for t in trails: t.queue_free()
@@ -273,26 +272,8 @@ func player_collision(player) -> bool:
 				return true
 	return false
 
-
 func _on_spawn_trail(new_trail: Node) -> void:
 	trails.append(new_trail)
-
-
-func _on_RoundStartTimer_timeout() -> void:
-	for p in players:
-		players[p][0].set_active(true)
-		players[p][0].get_node("Arrow").visible = false
-
-
-func _on_RoundOverTimer_timeout() -> void:
-	$UI/Control/VBoxContainer/LabelRoundOver.text = ""
-	#if players.size() > 0:
-		#if network_driven:
-			#get_parent().call_deferred("_host_request_next_round")
-		#else:
-			#start_round()
-	if not network_driven:
-		start_round()  # Lokalmodus darf direkt starten
 
 func _on_Walls_area_exited(area: Area2D) -> void:
 	if network_driven and not is_authority:
@@ -333,20 +314,15 @@ func add_player_from_net(pid: int) -> void:
 		remaining_players = players.size()
 	_refresh_score_labels()
 
-
-
 func set_input_for_pid(pid: int, left: bool, right: bool) -> void:
 	if players.has(pid):
 		players[pid][0].set_input(left, right)
-
 
 func remove_player(pid:int) -> void:
 	if players.has(pid):
 		players[pid][0].queue_free()
 		players.erase(pid)
 		remaining_players = max(0, players.size())
-		
-# In game.gd hinzufügen
 
 func update_ready_ui(my_id: int, host_id: int, ids: Array, ready_by_pid: Dictionary, my_ready: bool) -> void:
 	var root := $UI/Control
@@ -478,19 +454,6 @@ func _fix_ui_layout() -> void:
 	if overlay:
 		overlay.z_index = 200
 		overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	
-	
-func _enter_tree() -> void:
-	# reagiert zuverlässig (auch im Web) auf Fullscreen/Resize
-	get_viewport().size_changed.connect(_on_viewport_resized)
-
-func _on_viewport_resized() -> void:
-	# Nur dann neu berechnen:
-	# - wenn wir Viewport-Bounds benutzen
-	# - und NICHT gerade eine Net-Runde läuft (sonst Desync)
-	if use_viewport_bounds and (not network_driven or not round_running):
-		_update_bounds_from_viewport()
-		_build_arena_from_bounds()
 
 # Host gibt die aktuell verwendete Arena zurück
 func get_arena_rect() -> Dictionary:
@@ -559,11 +522,22 @@ func apply_remote_round_over(winner_pid: int, draw: bool) -> void:
 		$UI/Control/VBoxContainer/LabelRoundOver.text = "%s WINS!" % human
 	else:
 		$UI/Control/VBoxContainer/LabelRoundOver.text = "IT'S A DRAW!"
-
 	emit_signal("round_finished", winner_pid, draw)
 
 func freeze_all_players() -> void:
 	for pid in players.keys():
 		var p = players[pid][0]
 		p.set_active(false)
-		p.set_input(false, false) # sicherheitshalber
+		p.set_input(false, false)
+
+func _on_RoundStartTimer_timeout() -> void:
+	for pid in players.keys():
+		var pl: Area2D = players[pid][0]
+		pl.set_active(true)
+		var arrow := pl.get_node_or_null("Arrow")
+		if arrow: arrow.visible = false
+
+func _on_RoundOverTimer_timeout() -> void:
+	$UI/Control/VBoxContainer/LabelRoundOver.text = ""
+	if not network_driven:
+		start_round()
