@@ -1,3 +1,4 @@
+
 extends Node2D
 class_name GameRoot
 signal round_state_changed(running: bool)
@@ -18,10 +19,12 @@ signal round_finished(winner_pid: int, draw: bool)
 
 var _play_bounds_x: Vector2
 var _play_bounds_y: Vector2
+var name_by_pid: Dictionary = {}  # pid -> String
 
 # --- Layer-Definitionen (Bits): 1 => 1<<0, 2 => 1<<1
 const LAYER_PLAYER := 1        # Bit 1
 const LAYER_WALLS  := 1 << 1   # Bit 2
+
 
 var players: Dictionary = {}   # pid -> [player_node, score]
 var trails: Array = []
@@ -214,8 +217,8 @@ func _process(_delta: float) -> void:
 			if remaining_players <= 1:
 				round_over()
 
-	if Input.is_action_just_pressed("ui_cancel"):
-		get_tree().change_scene_to_file("res://kurve/main_menu.tscn")
+	#if Input.is_action_just_pressed("ui_cancel"):
+		#get_tree().change_scene_to_file("res://kurve/main_menu.tscn")
 
 
 func round_over() -> void:
@@ -229,19 +232,17 @@ func round_over() -> void:
 				winner_pid = int(p)
 				players[p][0].set_active(false)
 				players[p][1] += 1
+				var human := _name_or_color_for_pid(p)
 				match players[p][0].player_num:
 					1:
-						$UI/Control/VBoxContainer/LabelBlue.text   = "BLUE: %s"   % players[p][1]
-						$UI/Control/VBoxContainer/LabelRoundOver.text = "BLUE WINS!"
+						$UI/Control/VBoxContainer/LabelBlue.text   = "%s: %s" % [human, players[p][1]]
 					2:
-						$UI/Control/VBoxContainer/LabelOrange.text = "ORANGE: %s" % players[p][1]
-						$UI/Control/VBoxContainer/LabelRoundOver.text = "ORANGE WINS!"
+						$UI/Control/VBoxContainer/LabelOrange.text = "%s: %s" % [human, players[p][1]]
 					3:
-						$UI/Control/VBoxContainer/LabelGreen.text  = "GREEN: %s"  % players[p][1]
-						$UI/Control/VBoxContainer/LabelRoundOver.text = "GREEN WINS!"
+						$UI/Control/VBoxContainer/LabelGreen.text  = "%s: %s" % [human, players[p][1]]
 					4:
-						$UI/Control/VBoxContainer/LabelPurple.text = "PURPLE: %s" % players[p][1]
-						$UI/Control/VBoxContainer/LabelRoundOver.text = "PURPLE WINS!"
+						$UI/Control/VBoxContainer/LabelPurple.text = "%s: %s" % [human, players[p][1]]
+				$UI/Control/VBoxContainer/LabelRoundOver.text = "%s WINS!" % human
 				break
 		emit_signal("round_finished", winner_pid, false)
 
@@ -303,6 +304,8 @@ func _on_Walls_area_exited(area: Area2D) -> void:
 
 func add_player_from_net(pid: int) -> void:
 	var new_player: Area2D = player_packed.instantiate()
+	if name_by_pid.has(pid):
+		new_player.set_display_name(String(name_by_pid[pid]))
 	_configure_player(new_player)                # <<< Layer/Mask/Group
 	new_player.spawn_trail.connect(_on_spawn_trail)
 	add_child(new_player)
@@ -324,6 +327,8 @@ func add_player_from_net(pid: int) -> void:
 		new_player.set_active(true)
 		new_player.get_node("Arrow").visible = false
 		remaining_players = players.size()
+	_refresh_score_labels()
+
 
 
 func set_input_for_pid(pid: int, left: bool, right: bool) -> void:
@@ -340,8 +345,9 @@ func remove_player(pid:int) -> void:
 # In game.gd hinzufügen
 
 func update_ready_ui(my_id: int, host_id: int, ids: Array, ready_by_pid: Dictionary, my_ready: bool) -> void:
-	var card := $UI/Control.get_node_or_null("ReadyCard") as PanelContainer
-	if card == null: 
+	var root := $UI/Control
+	var card := root.find_child("ReadyCard", true, false) as PanelContainer
+	if card == null:
 		return
 	var margin := card.get_node_or_null("Margin")
 	if margin == null:
@@ -354,35 +360,31 @@ func update_ready_ui(my_id: int, host_id: int, ids: Array, ready_by_pid: Diction
 	var btn := body.get_node_or_null("ReadyButton") as CheckButton
 	var list := body.get_node_or_null("ReadyList") as VBoxContainer
 
-	# eigene Farbe/Host
 	if you_lbl and players.has(my_id):
-		var color_name := _color_name_for(players[my_id][0].player_num)
+		var human_me := _name_or_color_for_pid(my_id)
 		var host_tag := " (HOST)" if my_id == host_id else ""
-		you_lbl.text = "You: %s%s" % [color_name, host_tag]
+		you_lbl.text = "You: %s%s" % [human_me, host_tag]
 
-	# Button-Status spiegeln
 	if btn and btn.has_method("set_pressed_no_signal"):
 		btn.set_pressed_no_signal(my_ready)
 
-	# Liste bauen
 	if list:
 		for c in list.get_children(): c.queue_free()
 		for pid in ids:
 			var is_me: bool = (pid == my_id)
 			var r: bool = bool(ready_by_pid.get(pid, false))
-			var colname: String = _color_name_for(players[pid][0].player_num) if players.has(pid) else "?"
+			var who: String = _name_or_color_for_pid(pid)
 			var me_tag: String = " (you)" if is_me else ""
 			var state: String = "READY" if r else "waiting..."
 
 			var line := Label.new()
-			line.text = "%s%s — %s" % [colname, me_tag, state]
+			line.text = "%s%s — %s" % [who, me_tag, state]
 			var font_col: Color = Color(0.6, 1.0, 0.6) if r else Color(0.85, 0.85, 0.85)
 			line.add_theme_color_override("font_color", font_col)
 			list.add_child(line)
 
-
-	# Card nur zeigen, wenn keine Runde läuft
 	card.visible = not round_running
+
 
 func _color_name_for(n: int) -> String:
 	match n:
@@ -391,48 +393,54 @@ func _color_name_for(n: int) -> String:
 		3: return "GREEN"
 		4: return "PURPLE"
 		_: return "?"
+		
 func _ensure_ready_ui() -> void:
-	var root := $UI/Control                                # füllt den Screen
-	# Root darf Maus durchlassen, Card fängt sie ab:
+	var root := $UI/Control
 	root.mouse_filter = Control.MOUSE_FILTER_PASS
 	root.set_anchors_preset(Control.PRESET_FULL_RECT, true)
 	root.set_offsets_preset(Control.PRESET_FULL_RECT)
 	root.z_index = 100
 
-	# Panel oben links: "ReadyCard"
-	var card := root.get_node_or_null("ReadyCard") as PanelContainer
+	# Overlay, das die Mitte zentriert
+	var overlay := root.get_node_or_null("ReadyOverlay") as CenterContainer
+	if overlay == null:
+		overlay = CenterContainer.new()
+		overlay.name = "ReadyOverlay"
+		root.add_child(overlay)
+		overlay.set_anchors_preset(Control.PRESET_FULL_RECT, true)
+		overlay.set_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+		overlay.z_index = 200
+
+	var card := overlay.get_node_or_null("ReadyCard") as PanelContainer
 	if card == null:
 		card = PanelContainer.new()
 		card.name = "ReadyCard"
-		root.add_child(card)
+		overlay.add_child(card)
+		card.custom_minimum_size = Vector2(340, 0)
+		card.mouse_filter = Control.MOUSE_FILTER_STOP
+		card.add_theme_color_override("panel", Color(0, 0, 0, 0.35)) # dunkles, leicht transparentes Panel
+		card.set_anchors_preset(Control.PRESET_CENTER, false)
 
-		# Position & Größe (oben links, schön klein)
-		card.position = Vector2(12, 12)
-		card.custom_minimum_size = Vector2(280, 0)
-		card.mouse_filter = Control.MOUSE_FILTER_STOP   # fängt Klicks ab
-		card.z_index = 200
-
-		# Innen: Margin -> VBox(Body)
 		var margin := MarginContainer.new()
 		margin.name = "Margin"
 		card.add_child(margin)
-		margin.add_theme_constant_override("margin_left",  8)
-		margin.add_theme_constant_override("margin_top",   8)
-		margin.add_theme_constant_override("margin_right", 8)
-		margin.add_theme_constant_override("margin_bottom",8)
+		margin.add_theme_constant_override("margin_left", 12)
+		margin.add_theme_constant_override("margin_top", 12)
+		margin.add_theme_constant_override("margin_right", 12)
+		margin.add_theme_constant_override("margin_bottom", 12)
 
 		var body := VBoxContainer.new()
 		body.name = "Body"
 		margin.add_child(body)
-		body.add_theme_constant_override("separation", 6)
+		body.add_theme_constant_override("separation", 8)
 
-		# Zeile: "You: …"
 		var you := Label.new()
 		you.name = "YouLabel"
 		you.text = "You: ?"
+		you.add_theme_font_size_override("font_size", 16)
 		body.add_child(you)
 
-		# Ready-Button
 		var btn := CheckButton.new()
 		btn.name = "ReadyButton"
 		btn.text = "Ready (R)"
@@ -441,22 +449,19 @@ func _ensure_ready_ui() -> void:
 		btn.focus_mode = Control.FOCUS_ALL
 		body.add_child(btn)
 
-		# Liste der Spieler
 		var list := VBoxContainer.new()
 		list.name = "ReadyList"
-		list.custom_minimum_size = Vector2(0, 100)     # genug Höhe
+		list.custom_minimum_size = Vector2(0, 120)
 		list.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		body.add_child(list)
-		
-		# --- Legacy-UI aufräumen: alles unter VBoxContainer, was "Ready..." heißt, entfernen
-		var vbox := $UI/Control.get_node_or_null("VBoxContainer")
-		if vbox:
-			var old_btn := vbox.get_node_or_null("ReadyButton")
-			if old_btn: old_btn.queue_free()
 
-			var old_panel := vbox.get_node_or_null("ReadyPanel")
-			if old_panel: old_panel.queue_free()
-
+	# Legacy aufräumen (links oben)
+	var vbox := root.get_node_or_null("VBoxContainer")
+	if vbox:
+		var old_btn := vbox.get_node_or_null("ReadyButton")
+		if old_btn: old_btn.queue_free()
+		var old_panel := vbox.get_node_or_null("ReadyPanel")
+		if old_panel: old_panel.queue_free()
 
 func _fix_ui_layout() -> void:
 	var root := $UI/Control
@@ -465,13 +470,12 @@ func _fix_ui_layout() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_PASS
 	root.z_index = 100
 
-	# nur die Card richtig „oben“ halten & klickbar
-	var card := root.get_node_or_null("ReadyCard") as PanelContainer
-	if card:
-		card.z_index = 200
-		card.mouse_filter = Control.MOUSE_FILTER_STOP
-	# in _ensure_ready_ui(), nachdem du card angelegt hast:
-	card.add_theme_color_override("panel", Color(0, 0, 0, 0.35))
+	var overlay := root.get_node_or_null("ReadyOverlay") as CenterContainer
+	if overlay:
+		overlay.z_index = 200
+		overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	
+	
 func _enter_tree() -> void:
 	# reagiert zuverlässig (auch im Web) auf Fullscreen/Resize
 	get_viewport().size_changed.connect(_on_viewport_resized)
@@ -498,3 +502,38 @@ func set_arena_from_host(ar: Dictionary) -> void:
 	spawn_bounds_x = Vector2(float(ar.get("x0", 0.0)), float(ar.get("x1", 0.0)))
 	spawn_bounds_y = Vector2(float(ar.get("y0", 0.0)), float(ar.get("y1", 0.0)))
 	_build_arena_from_bounds()
+	
+func set_name_for_pid(pid: int, name: String) -> void:
+	name_by_pid[pid] = name
+	if players.has(pid):
+		var pl: Area2D = players[pid][0]
+		if "set_display_name" in pl:
+			pl.set_display_name(name)
+	# Ready-UI refreshen
+	if has_method("update_ready_ui"):
+		var ids := players.keys()
+		update_ready_ui(-1, -1, ids, {}, false)
+	_refresh_score_labels()
+
+		
+func _name_or_color_for_pid(pid: int) -> String:
+	if name_by_pid.has(pid) and String(name_by_pid[pid]) != "":
+		return String(name_by_pid[pid])
+	if players.has(pid):
+		return _color_name_for(players[pid][0].player_num)
+	return "?"
+	
+func _refresh_score_labels() -> void:
+	var map := {
+		1: $UI/Control/VBoxContainer/LabelBlue,
+		2: $UI/Control/VBoxContainer/LabelOrange,
+		3: $UI/Control/VBoxContainer/LabelGreen,
+		4: $UI/Control/VBoxContainer/LabelPurple,
+	}
+	for pid in players.keys():
+		var pnode = players[pid][0]
+		var score = players[pid][1]
+		var human = _name_or_color_for_pid(pid)
+		var lbl: Label = map.get(pnode.player_num, null)
+		if lbl:
+			lbl.text = "%s: %s" % [human, score]
