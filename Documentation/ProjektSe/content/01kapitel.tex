@@ -5,33 +5,13 @@ Im Rahmen des Moduls „Verteilte Systeme“ haben wir gemeinsam ein Netzwerkspi
 
 \section{Projektüberblick}
 
-Die Umsetzung erfolgt nach agilen Prinzipien unter Anwendung von Scrum, wobei die jeweiligen Sprints von Freitag bis Freitag festgelegt wurden. 
+Die Umsetzung erfolgte in Godot als Game Engine, ergänzt durch verschiedene Backend-Komponenten zur Verwaltung von Spielern, Lobbys und Spielzuständen. Dabei kamen unter anderem eine User-Datenbank, ein Redis-Server für schnelle Synchronisation, sowie ein Masterserver und ein Loadbalancer für die Organisation und Skalierung der Spielinstanzen zum Einsatz.
 
-Die technische Architektur sieht den Einsatz von vier Mikrocontroller-Einheiten (ESP32) vor, die jeweils mit einem Mikrofon oder einem Dezibel-Messsensor ausgestattet werden. 
-Die Geräte werden in den vier Ecken des Vorlesungsraums positioniert, um eine möglichst flächendeckende Abdeckung des Raumes zu gewährleisten. Über ein Kommunikationsprotokoll tauschen sich die ESPs untereinander aus und 
-senden die gesammelten Messdaten gemeinsam an ein zentrales Backend.
+Die Architektur wurde so entworfen, dass sie eine saubere Trennung zwischen Frontend, Spiel-Logik und Backend-Systemen ermöglicht. Eine genauere Beschreibung der einzelnen Komponenten und deren Zusammenspiel erfolgt in den folgenden Kapiteln.
 
 \section{Ziele und Motivation}
 
-Ziel ist es, ein skalierbares und robustes System zu entwickeln, das Lautstärkepegel über einen längeren Zeitraum erfassen kann. Die gesammelten Daten sollen im Backend gespeichert und im Nachgang analysiert werden. 
-Hierbei sind verschiedene Darstellungsformen wie etwa Heatmaps oder zeitbasierte Diagramme denkbar, um Muster oder Auffälligkeiten im akustischen Verhalten des Raumes sichtbar zu machen.
+Dabei stand nicht nur der Spielspaß im Vordergrund, sondern insbesondere das praktische Verständnis von Konzepten wie:
+Lastverteilung durch einen Loadbalancer, Zentrale Verwaltung von Lobbys und Spielzuständen über einen Masterserver, Persistente Datenspeicherung in Datenbanken, Skalierbarkeit durch die Nutzung mehrerer Game-Server und Redis für schnelle Synchronisation.
 
-\section{MVP und Qualitätsmerkmale}
-
-Im Rahmen des MVPs soll ein verteiltes System zur akustischen Raumüberwachung auf Basis von vier Mikrocontrollern der ESP-Serie entwickelt werden. 
-Jeder ESP wird über ein extern angeschlossenes Mikrofon verfügen, mit dem kontinuierlich Lautstärkedaten erfasst werden. Drei der Module sollen ihre Messwerte mithilfe des ESP-NOW-Protokolls an eine zentrale Einheit übermitteln, 
-die zusätzlich eigene Daten erfasst. Die aggregierten Informationen aller vier Einheiten werden in festen Intervallen über das MQTT-Protokoll an einen Server gesendet und dort zeitsynchron in einer InfluxDB gespeichert. 
-Über eine REST-API sollen die Daten einem Angular-basierten Web-Frontend zur Visualisierung der akustischen Messwerte zur Verfügung gestellt werden.
-
-\begin{center}
-\end{center}
-
-Aufgrundlage des MVPs sollen die folgenden Qualitätsmerkmale sichergestellt werden:
-\begin{itemize}
-    \item \textbf{Echtheit \& Qualität der Daten:}
-    Nur qualitative Daten z.B. durch manuelle Überprüfung und Kalibrierung der Mikrofone ermöglichen realistische Messwerte und damit eine sinnvolle Analyse der akustischen Verhältnisse im Raum.
-\item \textbf{Accountability der Daten:}
-    Es muss nachvollziehbar sein, welche Sensoren zu welchem Zeitpunkt welche Daten erfasst haben. Diese Anforderung soll durch das Einführen einer eindeutigen ID für jeden Sensor, die mit jedem Value mitgeschickt wird, umgesetzt werden.
-    \item \textbf{Verfügbarkeit:}
-    Da die Übertragungswege mit ESP-NOW und MQTT unterbrochen werden könnten ist es wichtig die Verfügbarkeit von Daten sicherzustellen indem ein möglicher Ausfall schnellstmöglich erkannt wird um diesen dann beheben zu können. Dies soll sichergestellt werden durch die Einführung einer Notification, die ausgelöst wird beim Ausfall eines Gerätes, was final über einen eigenen Discord-Server bereitgestellt werden soll.
-\end{itemize}
+Die Motivation war also, ein praxisnahes Beispiel zu schaffen, bei dem die theoretischen Inhalte aus der Vorlesung in einem realen Projekt erlebbar werden. Durch die Umsetzung in Godot konnte zusätzlich die Anbindung einer Game Engine an ein verteiltes Backend erprobt werden.

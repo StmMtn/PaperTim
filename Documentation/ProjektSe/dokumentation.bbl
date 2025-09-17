@@ -1,32 +1,3 @@
 \begin{thebibliography}{xx}
 
-\harvarditem{Appventurez}{2025}{appventurez2025nodejsframework}
-Appventurez  \harvardyearleft 2025\harvardyearright , `Node.js frameworks
-  comparison: Express.js, koa.js, and more'.
-\newblock Accessed: 2025-08-01.
-\newline\harvardurl{https://www.appventurez.com/blog/node-js-framework}
-
-\harvarditem{Community}{2025}{betterstack2025koavsexpress}
-Community, B.  \harvardyearleft 2025\harvardyearright , `Koa.js vs express.js:
-  Which node.js framework to choose?'.
-\newblock Accessed: 2025-08-01.
-\newline\harvardurl{https://betterstack.com/community/guides/scaling-nodejs/koajs-vs-expressjs}
-
-\harvarditem{Node-RED}{2025}{nodered2023docs}
-Node-RED  \harvardyearleft 2025\harvardyearright , `Node-red dokumentation'.
-\newblock Accessed: 2025-08-14.
-\newline\harvardurl{https://nodered.org/docs/}
-
-\harvarditem{Oltheten}{2019}{oltheten2019micplacement}
-Oltheten, W.  \harvardyearleft 2019\harvardyearright , `The 7 steps of ideal
-  mic placement'.
-\newblock Accessed: 2025-07-31.
-\newline\harvardurl{https://sonicscoop.com/7-steps-for-ideal-mic-placement/}
-
-\harvarditem{Powell}{2023}{kinsta2023angularvreact}
-Powell, Z.  \harvardyearleft 2023\harvardyearright , `Angular vs. react: Ein
-  detaillierter vergleich'.
-\newblock Accessed: 2025-08-14.
-\newline\harvardurl{https://kinsta.com/de/blog/angular-vs-react/}
-
 \end{thebibliography}

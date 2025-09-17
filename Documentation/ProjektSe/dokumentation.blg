@@ -4,56 +4,47 @@ The top-level auxiliary file: dokumentation.aux
 Reallocating 'name_of_file' (item size: 1) to 5 items.
 The style file: agsm.bst
 Reallocating 'name_of_file' (item size: 1) to 10 items.
+I found no \citation commands---while reading file dokumentation.aux
 Database file #1: ArbeitBib.bib
-Warning--entry type for "oltheten2019micplacement" isn't style-file defined
---line 65 of file ArbeitBib.bib
-Warning--entry type for "betterstack2025koavsexpress" isn't style-file defined
---line 85 of file ArbeitBib.bib
-Warning--entry type for "appventurez2025nodejsframework" isn't style-file defined
---line 103 of file ArbeitBib.bib
-Warning--entry type for "kinsta2023angularvreact" isn't style-file defined
---line 121 of file ArbeitBib.bib
-Warning--entry type for "nodered2023docs" isn't style-file defined
---line 139 of file ArbeitBib.bib
-You've used 5 entries,
+You've used 0 entries,
             2909 wiz_defined-function locations,
-            668 strings with 5519 characters,
-and the built_in function-call counts, 10288 in all, are:
-= -- 1595
-> -- 120
+            638 strings with 4751 characters,
+and the built_in function-call counts, 32 in all, are:
+= -- 0
+> -- 0
 < -- 0
-+ -- 698
-- -- 35
-* -- 775
-:= -- 2278
-add.period$ -- 10
-call.type$ -- 5
-change.case$ -- 70
-chr.to.int$ -- 5
-cite$ -- 5
-duplicate$ -- 55
-empty$ -- 131
-format.name$ -- 45
-if$ -- 1801
++ -- 0
+- -- 0
+* -- 0
+:= -- 18
+add.period$ -- 0
+call.type$ -- 0
+change.case$ -- 0
+chr.to.int$ -- 0
+cite$ -- 0
+duplicate$ -- 0
+empty$ -- 1
+format.name$ -- 0
+if$ -- 1
 int.to.chr$ -- 5
 int.to.str$ -- 0
 missing$ -- 0
-newline$ -- 28
-num.names$ -- 50
-pop$ -- 45
+newline$ -- 3
+num.names$ -- 0
+pop$ -- 0
 preamble$ -- 1
-purify$ -- 75
+purify$ -- 0
 quote$ -- 0
-skip$ -- 46
+skip$ -- 1
 stack$ -- 0
-substring$ -- 2138
-swap$ -- 5
-text.length$ -- 70
+substring$ -- 0
+swap$ -- 0
+text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 20
+type$ -- 0
 warning$ -- 0
-while$ -- 105
+while$ -- 0
 width$ -- 0
-write$ -- 72
-(There were 5 warnings)
+write$ -- 2
+(There was 1 error message)
