@@ -1,3 +1,4 @@
+
 extends Node2D
 class_name GameRoot
 signal round_state_changed(running: bool)
@@ -214,8 +215,8 @@ func _process(_delta: float) -> void:
 			if remaining_players <= 1:
 				round_over()
 
-	if Input.is_action_just_pressed("ui_cancel"):
-		get_tree().change_scene_to_file("res://kurve/main_menu.tscn")
+	#if Input.is_action_just_pressed("ui_cancel"):
+		#get_tree().change_scene_to_file("res://kurve/main_menu.tscn")
 
 
 func round_over() -> void:
@@ -340,8 +341,9 @@ func remove_player(pid:int) -> void:
 # In game.gd hinzufügen
 
 func update_ready_ui(my_id: int, host_id: int, ids: Array, ready_by_pid: Dictionary, my_ready: bool) -> void:
-	var card := $UI/Control.get_node_or_null("ReadyCard") as PanelContainer
-	if card == null: 
+	var root := $UI/Control
+	var card := root.find_child("ReadyCard", true, false) as PanelContainer
+	if card == null:
 		return
 	var margin := card.get_node_or_null("Margin")
 	if margin == null:
@@ -354,17 +356,14 @@ func update_ready_ui(my_id: int, host_id: int, ids: Array, ready_by_pid: Diction
 	var btn := body.get_node_or_null("ReadyButton") as CheckButton
 	var list := body.get_node_or_null("ReadyList") as VBoxContainer
 
-	# eigene Farbe/Host
 	if you_lbl and players.has(my_id):
 		var color_name := _color_name_for(players[my_id][0].player_num)
 		var host_tag := " (HOST)" if my_id == host_id else ""
 		you_lbl.text = "You: %s%s" % [color_name, host_tag]
 
-	# Button-Status spiegeln
 	if btn and btn.has_method("set_pressed_no_signal"):
 		btn.set_pressed_no_signal(my_ready)
 
-	# Liste bauen
 	if list:
 		for c in list.get_children(): c.queue_free()
 		for pid in ids:
@@ -380,9 +379,8 @@ func update_ready_ui(my_id: int, host_id: int, ids: Array, ready_by_pid: Diction
 			line.add_theme_color_override("font_color", font_col)
 			list.add_child(line)
 
-
-	# Card nur zeigen, wenn keine Runde läuft
 	card.visible = not round_running
+
 
 func _color_name_for(n: int) -> String:
 	match n:
@@ -391,48 +389,54 @@ func _color_name_for(n: int) -> String:
 		3: return "GREEN"
 		4: return "PURPLE"
 		_: return "?"
+		
 func _ensure_ready_ui() -> void:
-	var root := $UI/Control                                # füllt den Screen
-	# Root darf Maus durchlassen, Card fängt sie ab:
+	var root := $UI/Control
 	root.mouse_filter = Control.MOUSE_FILTER_PASS
 	root.set_anchors_preset(Control.PRESET_FULL_RECT, true)
 	root.set_offsets_preset(Control.PRESET_FULL_RECT)
 	root.z_index = 100
 
-	# Panel oben links: "ReadyCard"
-	var card := root.get_node_or_null("ReadyCard") as PanelContainer
+	# Overlay, das die Mitte zentriert
+	var overlay := root.get_node_or_null("ReadyOverlay") as CenterContainer
+	if overlay == null:
+		overlay = CenterContainer.new()
+		overlay.name = "ReadyOverlay"
+		root.add_child(overlay)
+		overlay.set_anchors_preset(Control.PRESET_FULL_RECT, true)
+		overlay.set_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+		overlay.z_index = 200
+
+	var card := overlay.get_node_or_null("ReadyCard") as PanelContainer
 	if card == null:
 		card = PanelContainer.new()
 		card.name = "ReadyCard"
-		root.add_child(card)
+		overlay.add_child(card)
+		card.custom_minimum_size = Vector2(340, 0)
+		card.mouse_filter = Control.MOUSE_FILTER_STOP
+		card.add_theme_color_override("panel", Color(0, 0, 0, 0.35)) # dunkles, leicht transparentes Panel
+		card.set_anchors_preset(Control.PRESET_CENTER, false)
 
-		# Position & Größe (oben links, schön klein)
-		card.position = Vector2(12, 12)
-		card.custom_minimum_size = Vector2(280, 0)
-		card.mouse_filter = Control.MOUSE_FILTER_STOP   # fängt Klicks ab
-		card.z_index = 200
-
-		# Innen: Margin -> VBox(Body)
 		var margin := MarginContainer.new()
 		margin.name = "Margin"
 		card.add_child(margin)
-		margin.add_theme_constant_override("margin_left",  8)
-		margin.add_theme_constant_override("margin_top",   8)
-		margin.add_theme_constant_override("margin_right", 8)
-		margin.add_theme_constant_override("margin_bottom",8)
+		margin.add_theme_constant_override("margin_left", 12)
+		margin.add_theme_constant_override("margin_top", 12)
+		margin.add_theme_constant_override("margin_right", 12)
+		margin.add_theme_constant_override("margin_bottom", 12)
 
 		var body := VBoxContainer.new()
 		body.name = "Body"
 		margin.add_child(body)
-		body.add_theme_constant_override("separation", 6)
+		body.add_theme_constant_override("separation", 8)
 
-		# Zeile: "You: …"
 		var you := Label.new()
 		you.name = "YouLabel"
 		you.text = "You: ?"
+		you.add_theme_font_size_override("font_size", 16)
 		body.add_child(you)
 
-		# Ready-Button
 		var btn := CheckButton.new()
 		btn.name = "ReadyButton"
 		btn.text = "Ready (R)"
@@ -441,22 +445,19 @@ func _ensure_ready_ui() -> void:
 		btn.focus_mode = Control.FOCUS_ALL
 		body.add_child(btn)
 
-		# Liste der Spieler
 		var list := VBoxContainer.new()
 		list.name = "ReadyList"
-		list.custom_minimum_size = Vector2(0, 100)     # genug Höhe
+		list.custom_minimum_size = Vector2(0, 120)
 		list.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		body.add_child(list)
-		
-		# --- Legacy-UI aufräumen: alles unter VBoxContainer, was "Ready..." heißt, entfernen
-		var vbox := $UI/Control.get_node_or_null("VBoxContainer")
-		if vbox:
-			var old_btn := vbox.get_node_or_null("ReadyButton")
-			if old_btn: old_btn.queue_free()
 
-			var old_panel := vbox.get_node_or_null("ReadyPanel")
-			if old_panel: old_panel.queue_free()
-
+	# Legacy aufräumen (links oben)
+	var vbox := root.get_node_or_null("VBoxContainer")
+	if vbox:
+		var old_btn := vbox.get_node_or_null("ReadyButton")
+		if old_btn: old_btn.queue_free()
+		var old_panel := vbox.get_node_or_null("ReadyPanel")
+		if old_panel: old_panel.queue_free()
 
 func _fix_ui_layout() -> void:
 	var root := $UI/Control
@@ -465,13 +466,12 @@ func _fix_ui_layout() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_PASS
 	root.z_index = 100
 
-	# nur die Card richtig „oben“ halten & klickbar
-	var card := root.get_node_or_null("ReadyCard") as PanelContainer
-	if card:
-		card.z_index = 200
-		card.mouse_filter = Control.MOUSE_FILTER_STOP
-	# in _ensure_ready_ui(), nachdem du card angelegt hast:
-	card.add_theme_color_override("panel", Color(0, 0, 0, 0.35))
+	var overlay := root.get_node_or_null("ReadyOverlay") as CenterContainer
+	if overlay:
+		overlay.z_index = 200
+		overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	
+	
 func _enter_tree() -> void:
 	# reagiert zuverlässig (auch im Web) auf Fullscreen/Resize
 	get_viewport().size_changed.connect(_on_viewport_resized)

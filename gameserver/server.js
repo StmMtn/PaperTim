@@ -111,27 +111,34 @@ wss.on('connection', async (ws, req) => {
 
   const playerId = nextId++;
   const roomId = getRoomFromReq(req);
+  const playerName = getNameFromReq(req) || `Player ${playerId}`;
   const set = getOrCreateRoom(roomId);
 
   // Roster für neuen Client
   const existingIds = [];
+  const existingNames = []; // [{id, name}]
   const readyIds = [];
   for (const sock of set) {
     const meta = clients.get(sock);
-    if (meta) existingIds.push(meta.id);
-    if (meta.ready) readyIds.push(meta.id);
-  }
+    if (meta) {
+        existingIds.push(meta.id);
+        readyIds.push(...(meta.ready ? [meta.id] : []));
+        existingNames.push({ id: meta.id, name: meta.name || '' });
+      }
+    }
 
   // init + roster nur an neuen Client
   ws.send(JSON.stringify({ type: 'init', id: playerId }));
   ws.send(JSON.stringify({ type: 'roster', ids: existingIds }));
   ws.send(JSON.stringify({ type: 'ready_state', ids: readyIds }));
+  ws.send(JSON.stringify({ type: 'names', list: existingNames }));
 
   // registrieren & allen anderen "join"
-  clients.set(ws, { id: playerId, roomId, ready: false });
+  clients.set(ws, { id: playerId, roomId, ready: false, name: playerName});
   set.add(ws);
   try { await redis.hincrby(SERVER_KEY, 'players', +1); } catch {}
   broadcastToRoom(roomId, { type: 'join', id: playerId }, ws);
+  broadcastToRoom(roomId, { type: 'name', id: playerId, name: playerName }, ws);
 
   ws.on('message', (msg) => {
     let data; try { data = JSON.parse(msg); } catch { return; }
@@ -180,6 +187,15 @@ wss.on('connection', async (ws, req) => {
     console.error('Report failed:', err.message);
   }
 } */
+function getNameFromReq(req) {
+  try {
+    const url = new URL(req.url, 'http://localhost');
+    const n = url.searchParams.get('name');
+    return (n && String(n)) || '';
+  } catch {
+    return '';
+  }
+}
 
 // Clean shutdown
 const shutdown = async () => {

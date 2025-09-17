@@ -1,3 +1,4 @@
+
 extends Node2D
 
 var ws := WebSocketPeer.new()
@@ -343,6 +344,9 @@ func _build_round_start_payload() -> Dictionary:
 	var arena := game.get_arena_rect()
 	return { "type": "round_start", "seed": seed, "spawns": spawns, "arena": arena}
 	
+	
+	
+	
 # game_paper.gd
 func _host_request_next_round() -> void:
 	if my_id == host_id and game and not game.round_running:
@@ -358,16 +362,18 @@ func _set_ready(v: bool) -> void:
 	_ws_send({ "type": "ready", "ready": v })
 
 func _wire_ready_button() -> void:
-	if not game: 
+	if not game:
 		return
-	var btn: BaseButton = game.get_node_or_null(
-		"UI/Control/ReadyCard/Margin/Body/ReadyButton"
-	) as BaseButton
+	var root := game.get_node("UI/Control")
+	var card := root.find_child("ReadyCard", true, false)
+	if card == null:
+		return
+	var btn: BaseButton = card.find_child("ReadyButton", true, false) as BaseButton
 	if btn != null:
 		btn.toggled.connect(func(on: bool) -> void:
 			_set_ready(on)
 		)
-		
+
 func _update_ready_ui() -> void:
 	if not game: return
 	# game zeichnet die Anzeige; wir geben Daten rüber
@@ -427,6 +433,7 @@ func _on_round_finished(winner_pid: int, draw: bool) -> void:
 	# nur wenn ich wirklich mitgespielt habe:
 	if not draw and game and game.players.has(my_id):
 		if winner_pid == my_id:
-			_trophy_delta_pending = 10
+			_trophy_delta_pending = 30
 		else:
 			_trophy_delta_pending = -10
+			

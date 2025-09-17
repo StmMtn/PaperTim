@@ -11,32 +11,47 @@ import { ThemeService } from '../theme';
   standalone: true,
 })
 export class Lobby implements OnInit {
-
   servers: any[] = [];
   startingServers: any[] = [];
-  devServerPort = "8443";
+  devServerPort = '8443';
   maxPlayers = 4;
 
-  constructor(private gs: Service, public auth: AuthService,public theme: ThemeService) {}
+  constructor(
+    private gs: Service,
+    public auth: AuthService,
+    public theme: ThemeService
+  ) {}
 
   ngOnInit() {
     this.refresh();
     setInterval(() => this.refresh(), 2000);
   }
 
+  /** bequemes Flag für Template */
+  get isLoggedIn(): boolean {
+    return !!this.auth.user && !!this.auth.getToken();
+  }
+
+  private encodeName(name?: string): string {
+    return name ? encodeURIComponent(name) : '';
+  }
+
+  /** Baut den Join-Link sicher. Gibt null zurück, wenn nicht möglich. */
+  buildJoinHref(server: any): string | null {
+    const token = this.auth.getToken();
+    if (!token) return null; // nicht eingeloggt → kein Link
+    const name = this.encodeName(this.auth.user?.username);
+    const qs = new URLSearchParams({ token, name }).toString();
+    return `http://localhost:${server.port}?${qs}`;
+  }
+
   refresh() {
-    this.gs.getServers().subscribe(newServers => {
-      newServers = newServers || [];
-
-      // Remove startingServers that now exist in newServers (match by port or id)
-      this.startingServers = this.startingServers.filter(temp =>
-        !newServers.some(s => s.port === temp.port)
+    this.gs.getServers().subscribe((newServers: any[] = []) => {
+      this.startingServers = this.startingServers.filter(
+        (temp) => !newServers.some((s) => s.port === temp.port)
       );
-
       this.servers = [...newServers];
-      console.log('Servers:', this.servers);
 
-      // Sortierung: Dev-Server oben, volle Server unten
       this.servers.sort((a, b) => {
         if (a.port === this.devServerPort) return -1;
         if (b.port === this.devServerPort) return 1;
@@ -48,20 +63,15 @@ export class Lobby implements OnInit {
   }
 
   startServer() {
-    // füge temporären Server hinzu
     this.startingServers.push({ tempId: 'temp_' + Date.now() });
-
-    // Starte den Server über Service
     this.gs.startServer().subscribe({
       next: () => {
-        // Direkt nach erfolgreichem Start: temporäre Server entfernen
         this.startingServers = [];
         this.refresh();
       },
       error: () => {
-        // Bei Fehler ebenfalls temporäre Server entfernen
         this.startingServers = [];
-      }
+      },
     });
   }
 
@@ -70,6 +80,6 @@ export class Lobby implements OnInit {
   }
 
   isFull(server: any): boolean {
-    return server.players >= this.maxPlayers;
+    return (server.players || 0) >= this.maxPlayers;
   }
 }
