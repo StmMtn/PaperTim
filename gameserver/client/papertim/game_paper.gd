@@ -232,17 +232,28 @@ func _process(_dt):
 					_check_all_ready_and_start()
 				"ready":
 					var pid := int(data.id)
+					if not known_pids.has(pid):
+						known_pids[pid] = true
+						if game:
+							game.add_player_from_net(pid)
+						_recalc_host()
+					# Zustand setzen
 					ready_by_pid[pid] = bool(data.ready)
 					_update_ready_ui()
 					_check_all_ready_and_start()
+
 				"join":
 					var pid := int(data.id)
 					if not known_pids.has(pid):
 						known_pids[pid] = true
-						ready_by_pid[pid] = false
-						game.add_player_from_net(pid)
+						# vorhandenen ready-Status (falls 'ready' zuerst kam) beibehalten
+						ready_by_pid[pid] = bool(ready_by_pid.get(pid, false))
+						if game:
+							game.add_player_from_net(pid)
 					_recalc_host()
 					_update_ready_ui()
+					_check_all_ready_and_start()   # <— NEU
+
 				"remove":
 					var rid := int(data.id)
 					game.remove_player(rid)
@@ -417,17 +428,18 @@ func _update_ready_ui() -> void:
 func _check_all_ready_and_start() -> void:
 	if my_id != host_id: return
 	if not game or game.round_running: return
-	# mindestens alle, die wir kennen, müssen ready sein
 	var ids := known_pids.keys()
-	if ids.size() == 0: return
+	ids.sort()
+	if ids.size() < MIN_PLAYERS_TO_START:
+		return
 	for pid in ids:
 		if not ready_by_pid.get(pid, false):
-			return  # jemand ist noch nicht ready
-
-	# alle ready -> Runde starten
+			return
+	# Alle ready -> starten
 	var payload := _build_round_start_payload()
 	_ws_send(payload)
 	game.start_round_net(payload.spawns, payload.seed)
+
 # vereinheitlichte POST-Funktion:
 func _post(url: String, body: Dictionary, tag: String) -> void:
 	var body_str = JSON.stringify(body)           # string

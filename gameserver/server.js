@@ -146,7 +146,8 @@ wss.on('connection', async (ws, req) => {
     if (data.type === 'ready') {
       const meta = clients.get(ws);
       if (meta) meta.ready = !!data.ready;
-      broadcastToRoom(roomId, { type: 'ready', id: playerId, ready: !!data.ready }, ws);
+    //  broadcastToRoom(roomId, { type: 'ready', id: playerId, ready: !!data.ready }, ws);
+      broadcastToRoom(roomId, { type: 'ready', id: playerId, ready: !!data.ready });
       return;
     }
   
