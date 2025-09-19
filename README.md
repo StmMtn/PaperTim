@@ -94,10 +94,7 @@ Spieler verbinden sich über WebSockets mit einem Game-Server, steuern ihre „K
 
 ## DB-Backup
 - Backup erstellen: ```bash 
-docker exec -t papertim-postgres-1 pg_dump -U postgres -d papertim > db_backup.sql  
-```
-- Backup laden: ```bash 
- docker compose exec -T postgres psql -U postgres -d papertim < db_backup.sql
+docker exec -t papertim-postgres-1 pg_dump -U postgres -d papertim > masterserver/init.sql  
 ```
 
 
