@@ -15,8 +15,8 @@ services:
     image: postgres:15
     environment:
       - POSTGRES_DB=papertim
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=${GAMYUSER}
+      - POSTGRES_PASSWORD=${GAMYPW}
     ports: ["5432:5432"]
     volumes:
       - ./pgdata:/var/lib/postgresql/data
