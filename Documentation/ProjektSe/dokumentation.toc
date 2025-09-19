@@ -6,23 +6,27 @@
 \contentsline {section}{\numberline {2.1}Überblick}{3}{section.2.1}%
 \contentsline {section}{\numberline {2.2}Frontend}{4}{section.2.2}%
 \contentsline {section}{\numberline {2.3}Loadbalancer}{4}{section.2.3}%
-\contentsline {section}{\numberline {2.4}Masterserver}{4}{section.2.4}%
+\contentsline {section}{\numberline {2.4}Masterserver}{5}{section.2.4}%
 \contentsline {section}{\numberline {2.5}Game-Server und Godot}{5}{section.2.5}%
 \contentsline {section}{\numberline {2.6}Datenbanken}{5}{section.2.6}%
-\contentsline {section}{\numberline {2.7}Zusammenspiel}{5}{section.2.7}%
-\contentsline {chapter}{\numberline {3}UI}{7}{chapter.3}%
-\contentsline {section}{\numberline {3.1}Frontend-Lobby}{7}{section.3.1}%
-\contentsline {section}{\numberline {3.2}Funktionen der Lobby}{8}{section.3.2}%
-\contentsline {subsection}{\numberline {3.2.1}Login / Registrierung}{8}{subsection.3.2.1}%
-\contentsline {subsection}{\numberline {3.2.2}Token basierte Authentifizierung}{8}{subsection.3.2.2}%
-\contentsline {subsection}{\numberline {3.2.3}Serverübersicht}{8}{subsection.3.2.3}%
-\contentsline {subsection}{\numberline {3.2.4}Serververwaltung}{9}{subsection.3.2.4}%
-\contentsline {subsection}{\numberline {3.2.5}Lobbybeitritt}{9}{subsection.3.2.5}%
-\contentsline {subsection}{\numberline {3.2.6}Leaderboard}{9}{subsection.3.2.6}%
-\contentsline {subsection}{\numberline {3.2.7}Datenintegritäts-Sicherung}{9}{subsection.3.2.7}%
-\contentsline {section}{\numberline {3.3}Godot-Spiel}{10}{section.3.3}%
-\contentsline {section}{\numberline {3.4}Spieloberfläche}{10}{section.3.4}%
-\contentsline {section}{\numberline {3.5}Lobby- und Ready-System}{11}{section.3.5}%
-\contentsline {section}{\numberline {3.6}Synchronisation und Kommunikation}{11}{section.3.6}%
-\contentsline {chapter}{Literaturverzeichnis}{i}{section*.6}%
+\contentsline {section}{\numberline {2.7}Zusammenspiel}{6}{section.2.7}%
+\contentsline {chapter}{\numberline {3}Reflektion}{7}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Herausforderungen und Lösungen}{7}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Mögliche Alternativen}{8}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Lessons Learned}{9}{section.3.3}%
+\contentsline {chapter}{\numberline {4}UI (optionale Erläuterung)}{10}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Frontend-Lobby}{10}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Funktionen der Lobby}{11}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Login / Registrierung}{11}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Token basierte Authentifizierung}{11}{subsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.2.3}Serverübersicht}{11}{subsection.4.2.3}%
+\contentsline {subsection}{\numberline {4.2.4}Serververwaltung}{12}{subsection.4.2.4}%
+\contentsline {subsection}{\numberline {4.2.5}Lobbybeitritt}{12}{subsection.4.2.5}%
+\contentsline {subsection}{\numberline {4.2.6}Leaderboard}{12}{subsection.4.2.6}%
+\contentsline {subsection}{\numberline {4.2.7}Datenintegritäts-Sicherung}{12}{subsection.4.2.7}%
+\contentsline {section}{\numberline {4.3}Godot-Spiel}{13}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Spieloberfläche}{13}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Lobby- und Ready-System}{14}{section.4.5}%
+\contentsline {section}{\numberline {4.6}Synchronisation und Kommunikation}{14}{section.4.6}%
+\contentsline {chapter}{Literaturverzeichnis}{i}{section*.14}%
 \providecommand \tocbasic@end@toc@file {}\tocbasic@end@toc@file 

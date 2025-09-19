@@ -16,6 +16,14 @@ Ein schematischer Überblick ist in Abbildung~\ref{fig:architektur} dargestellt.
   \label{fig:architektur}
 \end{figure}
 
+
+Bei der Planung der Architektur wurde stets darauf geachtet für den Benutzer die bestmögliche Erfahrung zu schaffen.
+Hierfür wurde sich für WebSockets entschieden, um es dem Spieler zu ermöglichebn einfach im Browser zu spielen, ohne zusätzliche Software installieren zu müssen.
+WebSockets bieten eine durchgehende Verbindung, bei der Client und Server jederzeit Daten senden können, was bei Echtzeit-Anwendungen wie Spielen die Verzögerung deutlich reduziert.
+Vgl. hierzu auch:
+(Alex Booker: *WebSockets vs HTTP: Which to choose for your project in 2024*, Ably, 13 min read \url{https://ably.com/topic/websockets-vs-http} (letzter Zugriff: 17.09.2025))
+
+
 \section{Frontend}
 Das Frontend stellt die Schnittstelle zum Spieler dar. 
 Hier können Lobbys ausgewählt, Benutzer eingeloggt und Spieldetails angezeigt werden. 
@@ -38,7 +46,7 @@ Es können beim Start der Container beliebig viele Masterserver-Instanzen angege
 Dies geschieht unter dem Docker-Compose-Flag --scale masterserver=Anzahl. 
 
 \section{Masterserver}
-Der Masterserver übernimmt die zentrale Verwaltung aller Lobbys und handhabt Informationen zu:
+Der Masterserver (in Express) übernimmt die zentrale Verwaltung aller Lobbys und handhabt Informationen zu:
 \begin{itemize}
   \item Anzahl und Ports der Lobbys,
   \item Spielern und deren Punkteständen,

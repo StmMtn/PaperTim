@@ -14,12 +14,12 @@ var _reported_this_round := false
 var _trophy_delta_pending := 0
 var name_by_pid: Dictionary = {}
 var game: GameRoot
-var known_pids: Dictionary = {}   # { pid: true }
-var host_id := 0                  # kleinste PID im Room = Host#
+var known_pids: Dictionary = {}
+var host_id := 0
 var my_ready := false
-var ready_by_pid: Dictionary = {}   # pid -> bool
+var ready_by_pid: Dictionary = {}
 var use_input_netmode := true
-const MIN_PLAYERS_TO_START := 2   # später 2, wenn gewollt
+const MIN_PLAYERS_TO_START := 2
 const PLAYER_SCENE := preload("res://kurve/player.tscn")
 
 @onready var reconnect_timer := Timer.new()
@@ -28,11 +28,9 @@ func _ready():
 	reconnect_timer.one_shot = true
 	add_child(reconnect_timer)
 	reconnect_timer.timeout.connect(_connect_ws)
-
 	if dev_offline:
 		_connect_ws()
 		return
-
 	http = HTTPRequest.new()
 	add_child(http)
 	http.request_completed.connect(_on_request_completed)
@@ -46,7 +44,6 @@ func _ready():
 				if kv.size() == 2 and kv[0] == "token":
 					auth_token = kv[1]
 					print("Auth token aus URL: %s" % auth_token)
-# NAME aus URL-Query
 	if Engine.has_singleton("JavaScriptBridge"):
 		var nm : String = str(JavaScriptBridge.eval(
 			"decodeURIComponent(new URLSearchParams(window.location.search).get('name') || '')"
@@ -114,7 +111,7 @@ func _connect_with_fallback():
 	_connect_ws()
 
 func _connect_ws():
-	if dev_offline: #for tests
+	if dev_offline:
 		if game == null:
 			var game_packed = load("res://kurve/game.tscn")
 			game = game_packed.instantiate()
@@ -123,7 +120,7 @@ func _connect_ws():
 			game.round_state_changed.connect(func(_running: bool) -> void:
 				_update_ready_ui()
 				if _running:
-					_reported_this_round = false   # ← Reset beim echten Start
+					_reported_this_round = false
 			)
 			if not game.round_finished.is_connected(_on_round_finished):
 				game.round_finished.connect(_on_round_finished)
@@ -134,7 +131,6 @@ func _connect_ws():
 		if not game.round_running:
 			game.start_round()
 		return
-	# --- Online ---
 	if game == null:
 		var game_packed2 = load("res://kurve/game.tscn")
 		game = game_packed2.instantiate()
@@ -147,7 +143,6 @@ func _connect_ws():
 			game.round_finished.connect(_on_round_finished)
 		_wire_ready_button()
 		_update_ready_ui()
-	# Room-ID anhängen (vor connect)
 	if Engine.has_singleton("JavaScriptBridge") and OS.has_feature("web"):
 		var room: String = JavaScriptBridge.eval("new URLSearchParams(window.location.search).get('room') || ''")
 		if room is String and room != "":
@@ -226,9 +221,8 @@ func _process(_dt):
 						game.round_over()
 				"round_start":
 					_reported_this_round = false
-					if game and data.has("arena"): # erst Arena vom Host setzen (damit alle gleich sind)
+					if game and data.has("arena"):
 						game.set_arena_from_host(data.arena)
-					# nach Start alle wieder un-ready setzen (für nächste Runde)
 					for pid in ready_by_pid.keys():
 						ready_by_pid[pid] = false
 					my_ready = false
@@ -294,7 +288,6 @@ func _recalc_host() -> void:
 func _build_round_start_payload() -> Dictionary:
 	_reported_this_round = false
 	var spawns := {}
-	## globaler Seed (für identische Gap-Randfolgen)
 	var sx0: float = game._play_bounds_x.x + game.spawn_extra_margin
 	var sx1: float = game._play_bounds_x.y - game.spawn_extra_margin
 	var sy0: float = game._play_bounds_y.x + game.spawn_extra_margin
@@ -345,7 +338,6 @@ func _check_all_ready_and_start() -> void:
 	for pid in ids:
 		if not ready_by_pid.get(pid, false):
 			return
-	# Alle ready -> starten
 	var payload := _build_round_start_payload()
 	_ws_send(payload)
 	game.start_round_net(payload.spawns, payload.seed)
@@ -370,11 +362,8 @@ func increase_games() -> void:
 func _on_round_finished(winner_pid: int, draw: bool) -> void:
 	if _reported_this_round: return
 	_reported_this_round = true
-
-	# Host teilt das Ergebnis allen mit
 	if my_id == host_id:
 		_ws_send({ "type": "round_over", "winner_pid": winner_pid, "draw": draw })
-
 	_trophy_delta_pending = 0
 	increase_games()
 	if draw: return
