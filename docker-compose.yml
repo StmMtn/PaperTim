@@ -24,7 +24,9 @@ services:
     networks: [gamenet]
 
   masterserver:
-    build: ./masterserver
+    build:
+      context: ./masterserver
+      dockerfile: Dockerfile
     networks: [gamenet]
     environment:
       - DOCKER_NETWORK=gamenet
@@ -39,14 +41,18 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       
   frontendlobby:
-    build: { context: ./Frontend }
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
     networks: [gamenet]
     ports: ["8081:8081"]
     depends_on: [masterserver]
 
   # optional: statischer Dev-Gameserver
   gameserver:
-    build: ./gameserver
+    build: 
+      context: ./gameserver
+      dockerfile: Dockerfile
     image: gameserver:latest
     networks: [gamenet]
     container_name: gameserver
@@ -65,13 +71,13 @@ services:
       - gamenet
 
   adminer:
-      image: adminer:latest
-      container_name: adminer
-      restart: unless-stopped
-      ports: 
-        - "8082:8080"
-      environment:
-        ADMINER_DEFAULT_SERVER: postgres
-      depends_on: 
-        - postgres
-      networks: [gamenet]
+    image: adminer:latest
+    container_name: adminer
+    restart: unless-stopped
+    ports: 
+      - "8082:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    depends_on: 
+      - postgres
+    networks: [gamenet]
