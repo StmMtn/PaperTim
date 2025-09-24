@@ -54,7 +54,7 @@ func _ready():
 	if Engine.has_singleton("JavaScriptBridge"):
 		base_url = JavaScriptBridge.eval("window.location.origin")
 	else:
-		base_url = "http://localhost:8443"
+		base_url = "http://213.153.88.123:8443"
 	http.set_meta("last_tag", "config")
 	var err = http.request(base_url + "/config")
 	if err != OK:
@@ -95,7 +95,7 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 			"inc_games":
 				print("Games now: %s" % str(parsed))
 				if _trophy_delta_pending != 0:
-					_post("http://localhost:3000/me/trophies",
+					_post("http://213.153.88.123:3000/me/trophies",
 						  {"amount": _trophy_delta_pending},
 						  "trophy")
 					_trophy_delta_pending = 0
@@ -107,7 +107,7 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 		push_error("Request failed (tag=%s, code=%s): %s" % [tag, response_code, text])
 
 func _connect_with_fallback():
-	ws_url = "ws://localhost:8443"
+	ws_url = "ws://213.153.88.123:8443"
 	_connect_ws()
 
 func _connect_ws():
@@ -357,7 +357,7 @@ func increase_games() -> void:
 	if auth_token == "":
 		push_error("Nicht eingeloggt")
 		return
-	_post("http://localhost:3000/me/games", {"amount":1}, "inc_games")
+	_post("http://213.153.88.123:3000/me/games", {"amount":1}, "inc_games")
 
 func _on_round_finished(winner_pid: int, draw: bool) -> void:
 	if _reported_this_round: return

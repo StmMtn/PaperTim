@@ -158,7 +158,7 @@ async function releasePort(port) {
   await redis.del(`server:${port}`);
 }
 
-app.listen(3000, () => console.log('Master-Server läuft auf http://localhost:3000'));
+app.listen(3000, () => console.log('Master-Server läuft auf http://213.153.88.123:3000'));
 
 const shutdown = async () => {
   console.log('🛑 Shutting down Master... entferne dynamische Gameserver');

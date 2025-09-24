@@ -6,7 +6,7 @@ import { HttpClient } from '@angular/common/http';
 })
 
 export class Service {
-  private baseUrl = 'http://localhost:3000';
+  private baseUrl = 'http://213.153.88.123:3000';
   constructor(private http: HttpClient) {}
 
   getServers() {
@@ -23,4 +23,3 @@ export class Service {
     return this.http.delete(`${this.baseUrl}/servers/${port}`);
   }
 }
-

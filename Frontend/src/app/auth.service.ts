@@ -4,7 +4,7 @@ import { tap } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private base = 'http://localhost:3000';
+  private base = 'http://213.153.88.123:3000';
   private token?: string;
   user?: any;
 

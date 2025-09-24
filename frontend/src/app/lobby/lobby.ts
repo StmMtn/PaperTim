@@ -40,7 +40,7 @@ export class Lobby implements OnInit {
     if (!token) return null; // nicht eingeloggt -> kein Link
     const name = this.encodeName(this.auth.user?.username);
     const qs = new URLSearchParams({ token, name }).toString();
-    return `http://localhost:${server.port}?${qs}`;
+    return `http://213.153.88.123:${server.port}?${qs}`;
   }
 
   refresh() {

@@ -52,11 +52,11 @@ app.use(
   })
 );
 
-console.log(`Starte Gameserver (container) auf 0.0.0.0:${INTERNAL_PORT} | public http://localhost:${PUBLIC_PORT}`);
+console.log(`Starte Gameserver (container) auf 0.0.0.0:${INTERNAL_PORT} | public http://213.153.88.123:${PUBLIC_PORT}`);
 const server = app.listen(INTERNAL_PORT, async () => {
-  console.log(`HTTP bereit (container:${INTERNAL_PORT}) → erreichbar als http://localhost:${PUBLIC_PORT}`);
+  console.log(`HTTP bereit (container:${INTERNAL_PORT}) → erreichbar als http://213.153.88.123:${PUBLIC_PORT}`);
   try {
-    await redis.hset(SERVER_KEY, { host: 'localhost', port: PUBLIC_PORT, players: 0 });
+    await redis.hset(SERVER_KEY, { host: '213.153.88.123', port: PUBLIC_PORT, players: 0 });
     await redis.expire(SERVER_KEY, 3600);
     console.log(`Server registriert in Redis unter Key ${SERVER_KEY}`);
   } catch (e) {
@@ -91,7 +91,7 @@ function broadcastToRoom(roomId, msgObj, excludeWs = null) {
 
 function getRoomFromReq(req) {
   try {
-    const url = new URL(req.url, 'http://localhost');
+    const url = new URL(req.url, 'http://213.153.88.123');
     const r = url.searchParams.get('room');
     return (r && String(r)) || 'default';
   } catch {
@@ -201,7 +201,7 @@ wss.on('connection', async (ws, req) => {
 } */
 function getNameFromReq(req) {
   try {
-    const url = new URL(req.url, 'http://localhost');
+    const url = new URL(req.url, 'http://213.153.88.123');
     const n = url.searchParams.get('name');
     return (n && String(n)) || '';
   } catch {
