@@ -9,7 +9,7 @@ import statsRoutes from './stats.js';
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 const app = express();
 const PORT_RANGE_START = 30000;
-const PORT_RANGE_END = 31000;
+const PORT_RANGE_END = 30100;
 const redis = new Redis({ host: 'redis', port: 6379 });
 const DOCKER_NETWORK = process.env.DOCKER_NETWORK || 'gamenet';
 const PROJECT_NAME = process.env.COMPOSE_PROJECT_NAME || 'papertim';
