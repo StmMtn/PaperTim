@@ -1,5 +1,4 @@
-# ganz oben:
-name: papertim   # <-- fester Compose-Projektname
+name: papertim
 
 networks:
   gamenet:
