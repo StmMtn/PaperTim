@@ -27,7 +27,6 @@ export class Lobby implements OnInit {
     setInterval(() => this.refresh(), 2000);
   }
 
-  /** bequemes Flag für Template */
   get isLoggedIn(): boolean {
     return !!this.auth.user && !!this.auth.getToken();
   }
@@ -36,10 +35,9 @@ export class Lobby implements OnInit {
     return name ? encodeURIComponent(name) : '';
   }
 
-  /** Baut den Join-Link sicher. Gibt null zurück, wenn nicht möglich. */
   buildJoinHref(server: any): string | null {
     const token = this.auth.getToken();
-    if (!token) return null; // nicht eingeloggt → kein Link
+    if (!token) return null; // nicht eingeloggt -> kein Link
     const name = this.encodeName(this.auth.user?.username);
     const qs = new URLSearchParams({ token, name }).toString();
     return `http://localhost:${server.port}?${qs}`;

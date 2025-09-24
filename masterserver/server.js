@@ -1,28 +1,24 @@
-// server.js
 import express from 'express';
 import Redis from 'ioredis';
 import Docker from 'dockerode';
-import getPort from 'get-port';
+//import getPort from 'get-port'; //wenn keine range benötigt wird, ersetze: allocatePort() mit getPort()
 import cors from 'cors';
 import authRoutes from './auth.js';
 import statsRoutes from './stats.js';
 
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 const app = express();
-
+const PORT_RANGE_START = 30000;
+const PORT_RANGE_END = 31000;
 const redis = new Redis({ host: 'redis', port: 6379 });
+const DOCKER_NETWORK = process.env.DOCKER_NETWORK || 'gamenet';
+const PROJECT_NAME = process.env.COMPOSE_PROJECT_NAME || 'papertim';
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
 app.use('/auth', authRoutes);
 app.use('/', statsRoutes);
-
-const DOCKER_NETWORK = process.env.DOCKER_NETWORK || 'gamenet';
-
-// Wichtig: ein fester Projektname, damit Compose & Labels zusammenpassen
-// -> in docker-compose.yml setzen wir COMPOSE_PROJECT_NAME (siehe unten)
-const PROJECT_NAME = process.env.COMPOSE_PROJECT_NAME || 'papertim';
 
 // Gemeinsame Labels für ALLE dynamischen Gameserver
 const BASE_LABELS = {
@@ -32,7 +28,7 @@ const BASE_LABELS = {
   'com.docker.compose.project': PROJECT_NAME,
 };
 
-// Helper: Container anhand Label public_port finden
+// Container anhand Label public_port finden
 async function findContainerByPublicPort(port) {
   const list = await docker.listContainers({
     all: true,
@@ -47,7 +43,7 @@ async function findContainerByPublicPort(port) {
   return list[0] || null;
 }
 
-// Helper: sicher stoppen & entfernen
+// sicher stoppen & entfernen
 async function stopAndRemoveContainer(id) {
   const c = docker.getContainer(id);
   try { await c.stop({ t: 5 }); } catch { /* already stopped */ }
@@ -72,11 +68,10 @@ app.get('/servers', async (_req, res) => {
   }
 });
 
-// Gameserver starten → dynamischer Host-Port, Container lauscht intern immer 8443
+// Gameserver starten → dynamischer Host-Port, Container lauscht intern immer auf 8443
 app.post('/servers', async (_req, res) => {
   try {
-    const hostPort = String(await getPort());
-
+    const hostPort = await allocatePort(); // Ports dynamisch holen 
     const container = await docker.createContainer({
       Image: 'gameserver:latest',
       name: `gameserver_${Date.now()}`,
@@ -97,11 +92,9 @@ app.post('/servers', async (_req, res) => {
       },
       Labels: {
         ...BASE_LABELS,
-        // mit diesem Label finden/killen wir per Port sehr einfach
         'public_port': hostPort,
       },
     });
-
     await container.start();
     res.json({ msg: 'Server gestartet', id: container.id, port: hostPort });
   } catch (err) {
@@ -110,17 +103,16 @@ app.post('/servers', async (_req, res) => {
   }
 });
 
-// *** NEU *** Gameserver per Port beenden & entfernen
+// Gameserver per Port beenden & entfernen
 app.delete('/servers/:port', async (req, res) => {
   const port = String(req.params.port);
   try {
     const c = await findContainerByPublicPort(port);
     if (!c) return res.status(404).json({ error: `Kein Gameserver mit Port ${port} gefunden.` });
-
     await stopAndRemoveContainer(c.Id);
     // Redis aufräumen (Key entspricht server:<port>)
     try { await redis.del(`server:${port}`); } catch {}
-
+    await releasePort(port);
     res.json({ msg: `Gameserver auf Port ${port} entfernt`, id: c.Id });
   } catch (err) {
     console.error('Fehler beim Stoppen:', err);
@@ -128,14 +120,13 @@ app.delete('/servers/:port', async (req, res) => {
   }
 });
 
-// *** NEU *** Alle dynamischen Gameserver killen
+// Alle dynamischen Gameserver killen
 app.delete('/servers', async (_req, res) => {
   try {
     const list = await docker.listContainers({
       all: true,
       filters: { label: ['app=gameserver', 'managed-by=masterserver'] },
     });
-
     const removed = [];
     for (const c of list) {
       const port = c.Labels?.public_port;
@@ -143,7 +134,6 @@ app.delete('/servers', async (_req, res) => {
       if (port) { try { await redis.del(`server:${port}`); } catch {} }
       removed.push({ id: c.Id, port });
     }
-
     res.json({ msg: 'Alle dynamischen Gameserver entfernt', removed });
   } catch (err) {
     console.error('Fehler beim Massen-Stoppen:', err);
@@ -151,9 +141,25 @@ app.delete('/servers', async (_req, res) => {
   }
 });
 
+async function allocatePort() {
+  for (let port = PORT_RANGE_START; port <= PORT_RANGE_END; port++) {
+    const inUse = await redis.exists(`server:${port}`);
+    if (!inUse) {
+      // reservieren
+      await redis.hset(`server:${port}`, { status: 'allocating' });
+      return String(port);
+    }
+  }
+  throw new Error('Kein freier Port verfügbar!');
+}
+
+// Port wieder freigeben
+async function releasePort(port) {
+  await redis.del(`server:${port}`);
+}
+
 app.listen(3000, () => console.log('Master-Server läuft auf http://localhost:3000'));
 
-// --- Compose-Down freundliches Shutdown: alle dynamischen Gameserver wegputzen ---
 const shutdown = async () => {
   console.log('🛑 Shutting down Master... entferne dynamische Gameserver');
   try {
@@ -161,7 +167,6 @@ const shutdown = async () => {
       all: true,
       filters: { label: ['app=gameserver', 'managed-by=masterserver'] },
     });
-
     for (const c of list) {
       const port = c.Labels?.public_port;
       await stopAndRemoveContainer(c.Id);
@@ -174,5 +179,7 @@ const shutdown = async () => {
     process.exit(0);
   }
 };
+
+
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);

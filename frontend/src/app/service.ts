@@ -18,7 +18,7 @@ export class Service {
   }
 
   stopServer(id: string) {
-    // id ist "server:45499" → wir extrahieren die Portnummer
+    // id ist "server:45499" -> wir extrahieren die Portnummer
     const port = id.split(':')[1];
     return this.http.delete(`${this.baseUrl}/servers/${port}`);
   }

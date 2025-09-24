@@ -7,7 +7,7 @@ const router = express.Router();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const JWT_SECRET = process.env.JWT_SECRET || 'devsecret';
 
-// helper: generate token
+// generate token
 function makeToken(user) {
   return jwt.sign({ sub: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
 }

@@ -13,7 +13,7 @@ config_version=5
 config/name="PaperTim"
 run/main_scene="uid://bni73cka7cqb5"
 config/features=PackedStringArray("4.4", "Forward Plus")
-config/icon="res://icon.svg"
+config/icon="uid://b7qqcuiifqyiv"
 
 [autoload]
 

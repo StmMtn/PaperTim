@@ -48,7 +48,6 @@ router.post('/me/games', authMiddleware, async (req, res) => {
   }
 });
 
-// leaderboard
 router.get('/leaderboard', async (req, res) => {
   const limit = Number(req.query.limit || 20);
   try {

@@ -15,14 +15,12 @@ const REDIS_PORT = Number(process.env.REDIS_PORT || 6379);
 const redis = new Redis({ host: REDIS_HOST, port: REDIS_PORT });
 redis.on('error', (e) => console.error('[Redis] error:', e.message));
 
-// WICHTIG: IMMER im Container auf 8443 lauschen
+// Container lauscht auf 8443
 const INTERNAL_PORT = Number(process.env.INTERNAL_PORT) || 8443;
 
-// Dieser Wert beschreibt den "öffentlichen" Host-Port (vom Master vergeben)
 const PUBLIC_PORT = Number(process.env.PUBLIC_PORT) || INTERNAL_PORT;
 const SERVER_KEY = `server:${PUBLIC_PORT}`;
 
-// --- Sicherheits-/Kompat-Header (schaden nie, helfen Godot Web) ---
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
@@ -30,9 +28,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- Runtime-Config für Godot: nimmt den Host-Header (host:publicPort) ---
 app.get('/config', (req, res) => {
-  const hostHeader = req.headers['host']; // z.B. "localhost:43943"
+  const hostHeader = req.headers['host'];
   const isHttps = (req.headers['x-forwarded-proto'] || req.protocol) === 'https';
   const wsScheme = isHttps ? 'wss' : 'ws';
   res.setHeader('Cache-Control', 'no-store');
@@ -67,14 +64,13 @@ const server = app.listen(INTERNAL_PORT, async () => {
   }
 });
 
-// WebSocket an denselben HTTP-Server hängen
+// WebSocket an HTTP-Server hängen
 const wss = new WebSocketServer({ server });
 let nextId = 1;
 
 // globaler Überblick (für Redis-Zähler etc.)
-const clients = new Map(); // Map<ws, { id, roomId }>
+const clients = new Map();
 
-// NEU: Rooms: roomId -> Set<ws>
 const rooms = new Map(); 
 
 function getOrCreateRoom(roomId) {
@@ -93,7 +89,6 @@ function broadcastToRoom(roomId, msgObj, excludeWs = null) {
   }
 }
 
-// kleine Helper zum Query-Param-Parsing
 function getRoomFromReq(req) {
   try {
     const url = new URL(req.url, 'http://localhost');
@@ -106,9 +101,7 @@ function getRoomFromReq(req) {
 
 wss.on('connection', async (ws, req) => {
   if (clients.size >= 4) { ws.close(1000, 'Max players reached'); return; }
-  
   // reportWinner(1); // TESTING
-
   const playerId = nextId++;
   const roomId = getRoomFromReq(req);
   const playerName = getNameFromReq(req) || `Player ${playerId}`;
@@ -116,7 +109,6 @@ wss.on('connection', async (ws, req) => {
 
   // Roster für neuen Client
   const existingIds = [];
-  // const existingNames = []; // [{id, name}]
   const readyIds = [];
   const names = {}; 
   for (const sock of set) {
@@ -168,7 +160,7 @@ wss.on('connection', async (ws, req) => {
       broadcastToRoom(roomId, { type: 'input', id: playerId, left: !!data.left, right: !!data.right });
       return;
     }
-    if (data.type === 'round_start') {           // Payload (spawns, seed) passt durch
+    if (data.type === 'round_start') {
       broadcastToRoom(roomId, data);
       return;
     }
